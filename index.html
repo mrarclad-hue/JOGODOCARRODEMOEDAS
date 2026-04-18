@@ -38,12 +38,27 @@ const ctx = canvas.getContext("2d");
 function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 resize(); window.addEventListener("resize", resize);
 
+/* MOTOR DE ÁUDIO */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let motorOsc = null;
+let motorGain = null;
+
 function playSound(f, t, d, v = 0.1) {
     const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
     o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
     g.gain.setValueAtTime(v, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
     o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
+}
+
+function updateMotorSound(speed) {
+    if (player.inCar) {
+        if (!motorOsc) {
+            motorOsc = audioCtx.createOscillator(); motorGain = audioCtx.createGain();
+            motorOsc.type = 'sawtooth'; motorGain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+            motorOsc.connect(motorGain); motorGain.connect(audioCtx.destination); motorOsc.start();
+        }
+        motorOsc.frequency.setTargetAtTime(60 + (speed * 12), audioCtx.currentTime, 0.1);
+    } else if (motorOsc) { motorOsc.stop(); motorOsc = null; }
 }
 
 const levels = {
@@ -63,14 +78,14 @@ let joy = {x:0, y:0}, joystickTouchId = null;
 function nextLevel() {
     fase = (fase < 5) ? fase + 1 : 1;
     score = 0; coins = []; pedestrians = [];
-    playSound(523, 'sine', 0.1); setTimeout(() => playSound(783, 'sine', 0.2), 150);
+    playSound(523, 'sine', 0.15); setTimeout(() => playSound(783, 'sine', 0.25), 150);
 }
 
 document.getElementById("carBtn").addEventListener("touchstart", (e) => {
     e.preventDefault();
     let d = Math.sqrt((player.x - car.x)**2 + (player.y - car.y)**2);
-    if (player.inCar) { player.inCar = false; player.x = car.x + 60 * Math.cos(car.angle + Math.PI/2); playSound(300, 'sine', 0.2); }
-    else if (d < 120 && !inHouse) { player.inCar = true; playSound(100, 'sine', 0.2); }
+    if (player.inCar) { player.inCar = false; player.x = car.x + 60 * Math.cos(car.angle + Math.PI/2); playSound(200, 'sine', 0.2); }
+    else if (d < 120 && !inHouse) { player.inCar = true; playSound(150, 'sine', 0.2); }
 }, { passive: false });
 
 document.getElementById("hornBtn").addEventListener("touchstart", (e) => {
@@ -97,22 +112,38 @@ function update() {
     if (player.inCar) {
         car.vx += joy.x * ca; car.vy += joy.y * ca;
         let s = Math.sqrt(car.vx**2 + car.vy**2);
+        updateMotorSound(s);
         if (s > cm) { car.vx = (car.vx/s)*cm; car.vy = (car.vy/s)*cm; }
         if (s > 0.5) car.angle = Math.atan2(car.vy, car.vx);
         car.x += car.vx; car.y += car.vy; car.vx *= cf; car.vy *= cf; player.x = car.x; player.y = car.y;
     } else {
+        updateMotorSound(0);
         if (Math.abs(joy.x) > 0.1 || Math.abs(joy.y) > 0.1) { player.angle = Math.atan2(joy.y, joy.x); player.anim += 0.2; }
         player.x += joy.x * ps; player.y += joy.y * ps;
     }
 
     if (!inHouse) {
-        if (pedestrians.length < 10) pedestrians.push({ x: player.x + (Math.random()-0.5)*1500, y: player.y + (Math.random()-0.5)*1500, angle: Math.random()*Math.PI*2, speed: 1+Math.random(), anim: 0, changeDir: Date.now()+2000, scared: false, scaredTimer: 0 });
+        if (pedestrians.length < 10) pedestrians.push({ x: player.x + (Math.random()-0.5)*1500, y: player.y + (Math.random()-0.5)*1500, angle: Math.random()*Math.PI*2, speed: 1+Math.random(), anim: 0, changeDir: Date.now()+2000, scared: false, scaredTimer: 0, dancing: false });
         for (let i = pedestrians.length-1; i>=0; i--) {
             let p = pedestrians[i];
-            if (p.scared && Date.now() < p.scaredTimer) continue;
-            p.scared = false;
-            if (Date.now() > p.changeDir) { p.angle += (Math.random()-0.5); p.changeDir = Date.now()+2000+Math.random()*3000; }
-            p.x += Math.cos(p.angle)*p.speed; p.y += Math.sin(p.angle)*p.speed; p.anim += 0.1;
+            
+            // Lógica de Detecção do Farol (Colisão de Luz)
+            p.dancing = false;
+            if (car.lights && player.inCar) {
+                let dx = p.x - car.x, dy = p.y - car.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let angToNpc = Math.atan2(dy, dx);
+                let diffAng = Math.abs(car.angle - angToNpc);
+                if (diffAng > Math.PI) diffAng = Math.PI*2 - diffAng;
+                if (dist < 200 && diffAng < 0.4) p.dancing = true;
+            }
+
+            if (p.dancing) { p.anim += 0.5; } // Dança rápida
+            else if (!(p.scared && Date.now() < p.scaredTimer)) {
+                p.scared = false;
+                if (Date.now() > p.changeDir) { p.angle += (Math.random()-0.5); p.changeDir = Date.now()+2000+Math.random()*3000; }
+                p.x += Math.cos(p.angle)*p.speed; p.y += Math.sin(p.angle)*p.speed; p.anim += 0.1;
+            }
             if (Math.sqrt((p.x-player.x)**2 + (p.y-player.y)**2) > 2000) pedestrians.splice(i, 1);
         }
         if (Math.random() < 0.03 && coins.length < 15) coins.push({ x: player.x + (Math.random()-0.5)*1800, y: player.y + (Math.random()-0.5)*1800, collected: false });
@@ -124,8 +155,11 @@ function update() {
     }
 }
 
-function drawPerson(x, y, angle, anim, color, isS) {
-    ctx.save(); ctx.translate(x, y); if (isS) ctx.translate(0, -20); ctx.rotate(angle + Math.PI/2);
+function drawPerson(x, y, angle, anim, color, isS, isD) {
+    ctx.save(); ctx.translate(x, y); 
+    if (isS) ctx.translate(0, -20); 
+    if (isD) { ctx.translate(Math.sin(anim)*10, -5); ctx.rotate(Math.sin(anim)*0.2); } // Movimento de dança
+    ctx.rotate(angle + Math.PI/2);
     let b = Math.sin(anim) * 3; ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.ellipse(0, 15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#212121"; ctx.fillRect(-8, 10 + (Math.sin(anim)*5), 6, 12); ctx.fillRect(2, 10 + (Math.cos(anim)*5), 6, 12);
     ctx.fillStyle = color; ctx.fillRect(-12, -10+b, 24, 25); ctx.fillStyle = "#ffe0bd"; ctx.beginPath(); ctx.arc(0, -18+b, 11, 0, Math.PI*2); ctx.fill(); ctx.restore();
@@ -140,16 +174,16 @@ function draw() {
         ctx.strokeStyle = lvl.grid; ctx.lineWidth = 2;
         for (let x = player.x - canvas.width - (player.x%100); x < player.x + canvas.width; x += 100) { ctx.beginPath(); ctx.moveTo(x, player.y - canvas.height); ctx.lineTo(x, player.y + canvas.height); ctx.stroke(); }
         for (let y = player.y - canvas.height - (player.y%100); y < player.y + canvas.height; y += 100) { ctx.beginPath(); ctx.moveTo(player.x - canvas.width, y); ctx.lineTo(player.x + canvas.width, y); ctx.stroke(); }
-        pedestrians.forEach(p => drawPerson(p.x, p.y, p.angle, p.anim, lvl.npc, p.scared));
+        pedestrians.forEach(p => drawPerson(p.x, p.y, p.angle, p.anim, lvl.npc, p.scared, p.dancing));
         coins.forEach(c => { if (!c.collected) { ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 10px Arial"; ctx.fillText("$", c.x-3, c.y+4); }});
     }
     ctx.save(); ctx.translate(housePos.x, housePos.y); ctx.fillStyle = "#5d4037"; ctx.fillRect(-300, -300, 600, 600); ctx.strokeStyle = "#3e2723"; ctx.lineWidth = 15; ctx.strokeRect(-300, -300, 600, 600); ctx.fillStyle = "#222"; ctx.fillRect(door.x-40, door.y-10, 80, 20); ctx.restore();
     ctx.save(); ctx.translate(car.x, car.y); ctx.rotate(car.angle);
-    if(car.lights) { let g = ctx.createLinearGradient(40,0,200,0); g.addColorStop(0,"rgba(255,255,200,0.4)"); g.addColorStop(1,"transparent"); ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(40,-20); ctx.lineTo(200,-60); ctx.lineTo(200,60); ctx.lineTo(40,20); ctx.fill(); }
+    if(car.lights) { let g = ctx.createLinearGradient(40,0,200,0); g.addColorStop(0,"rgba(255,255,200,0.5)"); g.addColorStop(1,"transparent"); ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(40,-20); ctx.lineTo(200,-60); ctx.lineTo(200,60); ctx.lineTo(40,20); ctx.fill(); }
     ctx.fillStyle = lvl.car; ctx.fillRect(-45, -25, 90, 50); ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(-20, -20, 40, 40);
     ctx.fillStyle = "#000"; ctx.fillRect(-35,-32,20,10); ctx.fillRect(15,-32,20,10); ctx.fillRect(-35,22,20,10); ctx.fillRect(15,22,20,10);
     if(car.lights) { ctx.fillStyle = "#fff"; ctx.fillRect(40,-20,5,10); ctx.fillRect(40,10,5,10); } ctx.restore();
-    if (!player.inCar) drawPerson(player.x, player.y, player.angle, player.anim, "#ff5722", false);
+    if (!player.inCar) drawPerson(player.x, player.y, player.angle, player.anim, "#ff5722", false, false);
     ctx.restore();
     document.getElementById("txtFase").innerText = "MAPA: " + fase + " (" + lvl.name + ")";
     document.getElementById("txtMoedas").innerText = "Moedas: " + score + " / 10";
