@@ -1,165 +1,338 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joguinho do Deive Abraão - Versão Armada!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Mobile - Deive Abraão</title>
     <style>
         body {
-            /* Estilo cinza escuro que você gosta */
-            background-color: #333;
-            color: #eee;
-            font-family: Arial, sans-serif;
             margin: 0;
-            overflow: hidden; /* Impede barras de rolagem */
+            overflow: hidden;
+            background: #222;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            font-family: sans-serif;
+        }
+
+        canvas { display: block; }
+
+        #ui-layer {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+        }
+
+        #joystickBase {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        #joystick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            top: 30px;
+            left: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        #carBtn {
+            position: fixed;
+            bottom: 40px;
+            right: 30px;
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            border: 3px solid #1565c0;
+            background: #ffffffcc;
+            font-weight: bold;
+            color: #1565c0;
+            font-size: 16px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
-        #game-container {
-            position: relative;
-            width: 80vw;
-            height: 80vh;
-            border: 2px solid #555;
-            background-color: #222;
-            cursor: crosshair; /* Muda o mouse para uma mira */
-        }
-
-        /* Estilo da imagem do Deive */
-        #deive {
-            position: absolute;
-            width: 100px; /* Ajuste o tamanho aqui */
-            height: auto;
-            transition: all 0.2s ease-out; /* Movimento suave */
-            cursor: pointer;
-        }
-
-        /* Estilo do efeito de tiro (o rastro) */
-        .bullet-trail {
-            position: absolute;
-            height: 4px;
-            background-color: yellow; /* Cor do rastro */
-            border-radius: 2px;
-            pointer-events: none; /* Não interfere nos cliques */
-            opacity: 0.8;
-            transform-origin: left center; /* Para girar a partir do início */
+        #carBtn:active {
+            background: #1565c0;
+            color: white;
         }
     </style>
 </head>
-<body>
 
-    <div id="game-container">
-        <img id="deive" src="sua-imagem-atual.png" alt="Deive Abraão">
-    </div>
+<body oncontextmenu="return false">
 
-    <script>
-        const deive = document.getElementById('deive');
-        const container = document.getElementById('game-container');
+<div id="ui-layer">
+    <div id="txtFase">Fase: 1</div>
+    <div id="txtMoedas">Moedas: 0/100</div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="carBtn">CARRO</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* CONTROLES (JOYSTICK) */
+let joy = {x:0, y:0}, dragging = false;
+const base = document.getElementById("joystickBase");
+const stick = document.getElementById("joystick");
+
+base.addEventListener("touchstart", (e) => {
+    dragging = true;
+    handleMove(e);
+});
+
+window.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    handleMove(e);
+}, { passive: false });
+
+window.addEventListener("touchend", () => {
+    dragging = false;
+    joy.x = 0; joy.y = 0;
+    stick.style.left = "30px";
+    stick.style.top = "30px";
+});
+
+function handleMove(e) {
+    let rect = base.getBoundingClientRect();
+    let t = e.touches[0];
+    let x = t.clientX - rect.left - 60;
+    let y = t.clientY - rect.top - 60;
+
+    let d = Math.sqrt(x*x + y*y), max = 40;
+    if (d > max) { x = x/d*max; y = y/d*max; }
+
+    joy.x = x/max;
+    joy.y = y/max;
+
+    stick.style.left = (x + 30) + "px";
+    stick.style.top = (y + 30) + "px";
+}
+
+/* ESTADO DO JOGO */
+let player = { x: 0, y: 0, inCar: false };
+let car = { x: 300, y: 300, vx: 0, vy: 0 };
+let inHouse = true;
+let door = { x: 0, y: 150 };
+let fase = 1;
+let score = 0;
+let coins = [];
+
+/* BOTÃO ENTRAR/SAIR DO CARRO */
+document.getElementById("carBtn").addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (inHouse) return;
+
+    let dx = player.x - car.x;
+    let dy = player.y - car.y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (player.inCar) {
+        player.inCar = false;
+        player.x = car.x + 50; // sai ao lado do carro
+    } else if (dist < 80) {
+        player.inCar = true;
+    }
+});
+
+function metaFase() {
+    return fase * 100;
+}
+
+function checkFase() {
+    if (score >= metaFase()) {
+        fase++;
+        score = 0;
+        alert("🔥 Parabéns! Você avançou para a Fase " + fase);
+    }
+}
+
+function generateCoins(px, py) {
+    if (coins.length < 15) {
+        coins.push({
+            x: px + (Math.random() - 0.5) * 1200,
+            y: py + (Math.random() - 0.5) * 1200,
+            collected: false
+        });
+    }
+}
+
+/* LÓGICA DE ATUALIZAÇÃO */
+function update() {
+    const playerSpeed = 4;
+    const carAcc = 0.5;
+    const carFriction = 0.96;
+    const carMax = 9;
+
+    if (player.inCar) {
+        car.vx += joy.x * carAcc;
+        car.vy += joy.y * carAcc;
+
+        // Limitar velocidade
+        let speed = Math.sqrt(car.vx*car.vx + car.vy*car.vy);
+        if (speed > carMax) {
+            car.vx = (car.vx/speed) * carMax;
+            car.vy = (car.vy/speed) * carMax;
+        }
+
+        car.x += car.vx;
+        car.y += car.vy;
+        car.vx *= carFriction;
+        car.vy *= carFriction;
+
+        player.x = car.x;
+        player.y = car.y;
+    } else {
+        player.x += joy.x * playerSpeed;
+        player.y += joy.y * playerSpeed;
+    }
+
+    // Colisão com a Porta (Entrar/Sair da Casa)
+    let dx = player.x - door.x;
+    let dy = player.y - door.y;
+    if (Math.abs(dx) < 30 && Math.abs(dy) < 40) {
+        inHouse = !inHouse;
+        player.x = 0; 
+        player.y = (inHouse) ? 100 : -50; // Posiciona fora da porta ao trocar
+    }
+
+    if (!inHouse) {
+        if (Math.random() < 0.03) generateCoins(player.x, player.y);
         
-        // --- CONFIGURAÇÕES ---
-        // Nome da imagem do Deive parado/padrão
-        const imgPadrao = 'sua-imagem-atual.png'; 
-        // Nome da imagem do Deive segurando a arma
-        const imgArmado = 'deive-armado.png'; 
-        // Intervalo de tempo para ele mudar de posição (em milissegundos)
-        let velocidade = 1000; 
+        // Coleta de moedas
+        coins.forEach(c => {
+            if (!c.collected) {
+                let dxc = player.x - c.x;
+                let dyc = player.y - c.y;
+                if (Math.sqrt(dxc*dxc + dyc*dyc) < 30) {
+                    c.collected = true;
+                    score += 10;
+                    checkFase();
+                }
+            }
+        });
+    }
+}
 
-        // Estado do jogo
-        let estaArmado = false;
-        let gameInterval;
+/* RENDERIZAÇÃO */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.save();
+    ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // --- FUNÇÕES ---
+    if (inHouse) {
+        // Interior da Casa
+        ctx.fillStyle = "#5d4037"; // Chão
+        ctx.fillRect(-250, -250, 500, 500);
+        
+        ctx.strokeStyle = "#3e2723";
+        ctx.lineWidth = 15;
+        ctx.strokeRect(-250, -250, 500, 500); // Paredes
 
-        // Função para mover o Deive aleatoriamente
-        function moverDeive() {
-            const containerRect = container.getBoundingClientRect();
-            const deiveRect = deive.getBoundingClientRect();
+        // Porta
+        ctx.fillStyle = "#222";
+        ctx.fillRect(door.x - 30, door.y - 10, 60, 20);
+    } else {
+        // Mundo Externo (Gramado)
+        let tileSize = 200;
+        let startX = Math.floor((player.x - canvas.width) / tileSize) * tileSize;
+        let startY = Math.floor((player.y - canvas.height) / tileSize) * tileSize;
 
-            // Calcula posições aleatórias, garantindo que ele não saia da borda
-            const maxX = containerRect.width - deiveRect.width;
-            const maxY = containerRect.height - deiveRect.height;
-
-            const newX = Math.random() * maxX;
-            const newY = Math.random() * maxY;
-
-            deive.style.left = newX + 'px';
-            deive.style.top = newY + 'px';
+        for (let x = startX; x < player.x + canvas.width; x += tileSize) {
+            for (let y = startY; y < player.y + canvas.height; y += tileSize) {
+                ctx.fillStyle = (Math.floor(x/tileSize) + Math.floor(y/tileSize)) % 2 === 0 ? "#2e7d32" : "#388e3c";
+                ctx.fillRect(x, y, tileSize, tileSize);
+            }
         }
 
-        // Função para o Deive ficar armado e atirar
-        function acaoTiro() {
-            if (estaArmado) return; // Impede que atire várias vezes seguidas
-
-            estaArmado = true;
-            deive.src = imgArmado; // Muda para a imagem armada
-
-            // Cria o efeito de tiro (rastro)
-            const trail = document.createElement('div');
-            trail.classList.add('bullet-trail');
-            container.appendChild(trail);
-
-            // Posiciona o início do rastro no centro da imagem do Deive
-            const deiveRect = deive.getBoundingClientRect();
-            const startX = deiveRect.left + deiveRect.width / 2;
-            const startY = deiveRect.top + deiveRect.height / 2;
-
-            // Define o destino do tiro (pode ser o centro da tela ou aleatório)
-            const destX = container.offsetWidth / 2;
-            const destY = container.offsetHeight / 2;
-
-            // Calcula o ângulo e o comprimento do rastro
-            const deltaX = destX - startX;
-            const deltaY = destY - startY;
-            const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            // Aplica os estilos ao rastro
-            trail.style.width = distance + 'px';
-            trail.style.left = (startX - container.getBoundingClientRect().left) + 'px';
-            trail.style.top = (startY - container.getBoundingClientRect().top) + 'px';
-            trail.style.transform = `rotate(${angle}deg)`;
-
-            // Remove o efeito de tiro após um curto período
-            setTimeout(() => {
-                trail.remove();
-            }, 100);
-
-            // Volta para a imagem padrão e para de mover após um tempo
-            setTimeout(() => {
-                deive.src = imgPadrao;
-                estaArmado = false;
-                
-                // Opcional: faz o Deive "parar" por um momento após o tiro
-                clearInterval(gameInterval);
-                setTimeout(() => {
-                    gameInterval = setInterval(moverDeive, velocidade);
-                }, 1000); 
-            }, 500); 
-        }
-
-        // --- EVENTOS ---
-
-        // Inicia o jogo
-        gameInterval = setInterval(moverDeive, velocidade);
-
-        // Quando clicar no Deive, ele atira
-        deive.addEventListener('click', (event) => {
-            // Se clicar nele enquanto ele já está armado, pode contar ponto ou fazer algo
-            // Aqui estamos apenas chamando a ação de tiro
-            acaoTiro();
+        // Moedas
+        coins.forEach(c => {
+            if (!c.collected) {
+                ctx.fillStyle = "#ffd700";
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 12, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = "#b8860b";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
         });
 
-        // Opcional: Permitir que ele atire aleatoriamente
-        /*
-        setInterval(() => {
-            if (Math.random() < 0.2) { // 20% de chance de atirar a cada movimento
-                acaoTiro();
-            }
-        }, velocidade);
-        */
+        // Carro
+        if (!player.inCar || (player.inCar)) {
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            // Corpo
+            ctx.fillStyle = "#1565c0";
+            ctx.fillRect(-40, -25, 80, 50);
+            // Teto
+            ctx.fillStyle = "#1e88e5";
+            ctx.fillRect(-25, -20, 50, 40);
+            // Rodas
+            ctx.fillStyle = "#000";
+            ctx.fillRect(-35, -30, 20, 10);
+            ctx.fillRect(15, -30, 20, 10);
+            ctx.fillRect(-35, 20, 20, 10);
+            ctx.fillRect(15, 20, 20, 10);
+            ctx.restore();
+        }
+    }
 
-    </script>
+    // Player (Desenha se não estiver no carro)
+    if (!player.inCar) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        // Cabeça
+        ctx.fillStyle = "#ffe0bd";
+        ctx.beginPath(); ctx.arc(0, -15, 12, 0, Math.PI*2); ctx.fill();
+        // Tronco
+        ctx.fillStyle = "#ff5722";
+        ctx.fillRect(-10, -5, 20, 25);
+        // Pernas
+        ctx.fillStyle = "#212121";
+        ctx.fillRect(-10, 20, 8, 15);
+        ctx.fillRect(2, 20, 8, 15);
+        ctx.restore();
+    }
+
+    ctx.restore();
+
+    // Atualiza UI
+    document.getElementById("txtFase").innerText = "Fase: " + fase;
+    document.getElementById("txtMoedas").innerText = "Moedas: " + score + "/" + metaFase();
+
+    update();
+    requestAnimationFrame(draw);
+}
+
+draw();
+</script>
 </body>
 </html>
