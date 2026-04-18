@@ -1,350 +1,166 @@
 <!DOCTYPE html>
-<html>
+Ei atualiza o primeiro jogo  <!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joguinho do Deive Abraão - Versão Armada!</title>
+    <style>
+        body {
+            /* Estilo cinza escuro que você gosta */
+            background-color: #333;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden; /* Impede barras de rolagem */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-<style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #222;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: none;
-}
+        #game-container {
+            position: relative;
+            width: 80vw;
+            height: 80vh;
+            border: 2px solid #555;
+            background-color: #222;
+            cursor: crosshair; /* Muda o mouse para uma mira */
+        }
 
-canvas { display: block; }
+        /* Estilo da imagem do Deive */
+        #deive {
+            position: absolute;
+            width: 100px; /* Ajuste o tamanho aqui */
+            height: auto;
+            transition: all 0.2s ease-out; /* Movimento suave */
+            cursor: pointer;
+        }
 
-#joystickBase {
-  position: fixed;
-  bottom: 40px;
-  left: 40px;
-  width: 120px;
-  height: 120px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 50%;
-}
-
-#joystick {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: rgba(255,255,255,0.7);
-  border-radius: 50%;
-  top: 30px;
-  left: 30px;
-}
-
-#carBtn {
-  position: fixed;
-  bottom: 40px;
-  right: 30px;
-  width: 80px;
-  height: 80px;
-  border-radius: 15px;
-  border: none;
-  background: #ffffffcc;
-  font-weight: bold;
-}
-</style>
+        /* Estilo do efeito de tiro (o rastro) */
+        .bullet-trail {
+            position: absolute;
+            height: 4px;
+            background-color: yellow; /* Cor do rastro */
+            border-radius: 2px;
+            pointer-events: none; /* Não interfere nos cliques */
+            opacity: 0.8;
+            transform-origin: left center; /* Para girar a partir do início */
+        }
+    </style>
 </head>
-
-<body oncontextmenu="return false">
-
-<canvas id="game"></canvas>
-
-<div id="joystickBase"><div id="joystick"></div></div>
-<button id="carBtn">CAR</button>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-function resize(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener("resize", resize);
-
-/* JOYSTICK */
-let joy = {x:0,y:0}, dragging=false;
-const base = document.getElementById("joystickBase");
-const stick = document.getElementById("joystick");
-
-base.addEventListener("touchstart", ()=> dragging=true);
-
-base.addEventListener("touchmove", e=>{
-  if(!dragging) return;
-
-  let rect = base.getBoundingClientRect();
-  let t = e.touches[0];
-
-  let x = t.clientX - rect.left - 60;
-  let y = t.clientY - rect.top - 60;
-
-  let d = Math.sqrt(x*x+y*y), max=40;
-  if(d>max){ x=x/d*max; y=y/d*max; }
-
-  joy.x = x/max;
-  joy.y = y/max;
-
-  stick.style.left=(x+30)+"px";
-  stick.style.top=(y+30)+"px";
-});
-
-base.addEventListener("touchend", ()=>{
-  dragging=false;
-  joy.x=0; joy.y=0;
-  stick.style.left="30px";
-  stick.style.top="30px";
-});
-
-/* PLAYER */
-let player={x:0,y:0,inCar:false};
-
-/* CARRO AZUL */
-let car={x:200,y:200};
-
-/* CASA */
-let inHouse = true;
-let door = {x:0,y:100};
-
-/* BOTÃO CARRO */
-document.getElementById("carBtn").addEventListener("touchstart", ()=>{
-  let dx=player.x-car.x, dy=player.y-car.y;
-  if(Math.sqrt(dx*dx+dy*dy)<80 && !inHouse){
-    player.inCar=!player.inCar;
-  }
-});
-
-/* FASES */
-let fase = 1;
-let score = 0;
-
-function metaFase(){
-  if(fase==1) return 100;
-  if(fase==2) return 200;
-  if(fase==3) return 300;
-  return 1000;
-}
-
-function checkFase(){
-  if(score >= metaFase()){
-    fase++;
-    score = 0;
-    alert("🔥 Fase " + fase + "!");
-  }
-}
-
-/* MOEDAS */
-let coins=[];
-function generateCoins(px,py){
-  for(let i=0;i<5;i++){
-    coins.push({
-      x:px+(Math.random()-0.5)*800,
-      y:py+(Math.random()-0.5)*800,
-      collected:false
-    });
-  }
-}
-
-/* VELOCIDADE */
-let vel = {x:0,y:0};
-
-/* MOVIMENTO */
-function update(){
-  let playerSpeed = 3;
-  let carAcc = 0.4;
-  let carMax = 6; // MAIS RÁPIDO
-
-  if(player.inCar){
-    vel.x += joy.x * carAcc;
-    vel.y += joy.y * carAcc;
-
-    vel.x = Math.max(-carMax, Math.min(carMax, vel.x));
-    vel.y = Math.max(-carMax, Math.min(carMax, vel.y));
-
-    car.x += vel.x;
-    car.y += vel.y;
-
-    vel.x *= 0.95;
-    vel.y *= 0.95;
-
-    player.x = car.x;
-    player.y = car.y;
-
-  } else {
-    player.x += joy.x * playerSpeed;
-    player.y += joy.y * playerSpeed;
-    vel.x = 0;
-    vel.y = 0;
-  }
-
-  // CASA (entrar/sair)
-  let dx = player.x - door.x;
-  let dy = player.y - door.y;
-
-  if(Math.abs(dx)<30 && Math.abs(dy)<40){
-    if(inHouse){
-      inHouse = false;
-      player.x = 0;
-      player.y = 0;
-    } else {
-      inHouse = true;
-      player.x = 0;
-      player.y = 0;
-    }
-  }
-
-  if(!inHouse && Math.random()<0.02){
-    generateCoins(player.x,player.y);
-  }
-}
-
-/* MAPA */
-function drawMap(){
-  let size=200;
-
-  for(let x=player.x-canvas.width; x<player.x+canvas.width; x+=size){
-    for(let y=player.y-canvas.height; y<player.y+canvas.height; y+=size){
-      ctx.fillStyle="#2e7d32";
-      ctx.fillRect(x,y,size,size);
-    }
-  }
-}
-
-/* CASA */
-function drawHouse(){
-  ctx.fillStyle="#8d6e63";
-  ctx.fillRect(-200,-200,400,400);
-
-  ctx.fillStyle="#5d4037";
-  ctx.fillRect(-200,-200,400,20);
-  ctx.fillRect(-200,180,400,20);
-  ctx.fillRect(-200,-200,20,400);
-  ctx.fillRect(180,-200,20,400);
-
-  ctx.fillStyle="#3e2723";
-  ctx.fillRect(door.x-20,door.y-30,40,60);
-}
-
-/* PLAYER */
-function drawPlayer(){
-  if(player.inCar) return;
-
-  ctx.save();
-  ctx.translate(player.x,player.y);
-
-  ctx.fillStyle="#ffe0bd";
-  ctx.beginPath();
-  ctx.arc(0,-25,15,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#000";
-  ctx.fillRect(-15,-40,30,10);
-  ctx.fillRect(-5,-28,3,3);
-  ctx.fillRect(3,-28,3,3);
-
-  ctx.beginPath();
-  ctx.arc(0,-20,6,0,Math.PI);
-  ctx.stroke();
-
-  ctx.fillStyle="#2196f3";
-  ctx.fillRect(-10,-10,20,30);
-
-  ctx.fillStyle="#ffe0bd";
-  ctx.fillRect(-20,-5,10,5);
-  ctx.fillRect(10,-5,10,5);
-
-  ctx.fillStyle="#000";
-  ctx.fillRect(-8,20,6,20);
-  ctx.fillRect(2,20,6,20);
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(-10,40,10,5);
-  ctx.fillRect(2,40,10,5);
-
-  ctx.fillStyle="#000";
-  ctx.fillRect(-8,42,6,2);
-  ctx.fillRect(4,42,6,2);
-
-  ctx.restore();
-}
-
-/* CARRO AZUL */
-function drawCar(){
-  if(inHouse) return;
-
-  ctx.save();
-  ctx.translate(car.x,car.y);
-
-  ctx.fillStyle="#1565c0"; // azul
-  ctx.fillRect(-30,-15,60,30);
-
-  ctx.fillStyle="#0d47a1";
-  ctx.fillRect(-20,-25,40,15);
-
-  ctx.fillStyle="#000";
-  ctx.beginPath(); ctx.arc(-20,15,8,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(20,15,8,0,Math.PI*2); ctx.fill();
-
-  ctx.restore();
-}
-
-/* MOEDAS */
-function drawCoins(){
-  coins.forEach(c=>{
-    if(!c.collected){
-      ctx.fillStyle="yellow";
-      ctx.beginPath();
-      ctx.arc(c.x,c.y,10,0,Math.PI*2);
-      ctx.fill();
-
-      let dx=player.x-c.x, dy=player.y-c.y;
-      if(Math.sqrt(dx*dx+dy*dy)<20){
-        c.collected=true;
-        score++;
-        checkFase();
-      }
-    }
-  });
-}
-
-/* CÂMERA */
-function camera(){
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.translate(canvas.width/2-player.x, canvas.height/2-player.y);
-}
-
-/* LOOP */
-function game(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  update();
-  camera();
-
-  if(inHouse){
-    drawHouse();
-  } else {
-    drawMap();
-    drawCoins();
-    drawCar();
-  }
-
-  drawPlayer();
-
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.fillStyle="#fff";
-  ctx.fillText("Fase: "+fase,20,30);
-  ctx.fillText("Moedas: "+score+"/"+metaFase(),20,50);
-
-  requestAnimationFrame(game);
-}
-
-game();
-</script>
-
+<body>
+
+    <div id="game-container">
+        <img id="deive" src="sua-imagem-atual.png" alt="Deive Abraão">
+    </div>
+
+    <script>
+        const deive = document.getElementById('deive');
+        const container = document.getElementById('game-container');
+        
+        // --- CONFIGURAÇÕES ---
+        // Nome da imagem do Deive parado/padrão
+        const imgPadrao = 'sua-imagem-atual.png'; 
+        // Nome da imagem do Deive segurando a arma
+        const imgArmado = 'deive-armado.png'; 
+        // Intervalo de tempo para ele mudar de posição (em milissegundos)
+        let velocidade = 1000; 
+
+        // Estado do jogo
+        let estaArmado = false;
+        let gameInterval;
+
+        // --- FUNÇÕES ---
+
+        // Função para mover o Deive aleatoriamente
+        function moverDeive() {
+            const containerRect = container.getBoundingClientRect();
+            const deiveRect = deive.getBoundingClientRect();
+
+            // Calcula posições aleatórias, garantindo que ele não saia da borda
+            const maxX = containerRect.width - deiveRect.width;
+            const maxY = containerRect.height - deiveRect.height;
+
+            const newX = Math.random() * maxX;
+            const newY = Math.random() * maxY;
+
+            deive.style.left = newX + 'px';
+            deive.style.top = newY + 'px';
+        }
+
+        // Função para o Deive ficar armado e atirar
+        function acaoTiro() {
+            if (estaArmado) return; // Impede que atire várias vezes seguidas
+
+            estaArmado = true;
+            deive.src = imgArmado; // Muda para a imagem armada
+
+            // Cria o efeito de tiro (rastro)
+            const trail = document.createElement('div');
+            trail.classList.add('bullet-trail');
+            container.appendChild(trail);
+
+            // Posiciona o início do rastro no centro da imagem do Deive
+            const deiveRect = deive.getBoundingClientRect();
+            const startX = deiveRect.left + deiveRect.width / 2;
+            const startY = deiveRect.top + deiveRect.height / 2;
+
+            // Define o destino do tiro (pode ser o centro da tela ou aleatório)
+            const destX = container.offsetWidth / 2;
+            const destY = container.offsetHeight / 2;
+
+            // Calcula o ângulo e o comprimento do rastro
+            const deltaX = destX - startX;
+            const deltaY = destY - startY;
+            const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Aplica os estilos ao rastro
+            trail.style.width = distance + 'px';
+            trail.style.left = (startX - container.getBoundingClientRect().left) + 'px';
+            trail.style.top = (startY - container.getBoundingClientRect().top) + 'px';
+            trail.style.transform = `rotate(${angle}deg)`;
+
+            // Remove o efeito de tiro após um curto período
+            setTimeout(() => {
+                trail.remove();
+            }, 100);
+
+            // Volta para a imagem padrão e para de mover após um tempo
+            setTimeout(() => {
+                deive.src = imgPadrao;
+                estaArmado = false;
+                
+                // Opcional: faz o Deive "parar" por um momento após o tiro
+                clearInterval(gameInterval);
+                setTimeout(() => {
+                    gameInterval = setInterval(moverDeive, velocidade);
+                }, 1000); 
+            }, 500); 
+        }
+
+        // --- EVENTOS ---
+
+        // Inicia o jogo
+        gameInterval = setInterval(moverDeive, velocidade);
+
+        // Quando clicar no Deive, ele atira
+        deive.addEventListener('click', (event) => {
+            // Se clicar nele enquanto ele já está armado, pode contar ponto ou fazer algo
+            // Aqui estamos apenas chamando a ação de tiro
+            acaoTiro();
+        });
+
+        // Opcional: Permitir que ele atire aleatoriamente
+        /*
+        setInterval(() => {
+            if (Math.random() < 0.2) { // 20% de chance de atirar a cada movimento
+                acaoTiro();
+            }
+        }, velocidade);
+        */
+
+    </script>
 </body>
 </html>
