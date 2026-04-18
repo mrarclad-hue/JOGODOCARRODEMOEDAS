@@ -51,23 +51,24 @@
             pointer-events: none;
         }
 
-        #carBtn {
+        .action-btn {
             position: fixed;
-            bottom: 40px;
-            right: 30px;
-            width: 85px;
-            height: 85px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            border: 3px solid #1565c0;
             background: #ffffffcc;
             font-weight: bold;
-            color: #1565c0;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             touch-action: none;
+            z-index: 20;
         }
+
+        #carBtn { bottom: 40px; right: 30px; width: 85px; height: 85px; border: 3px solid #1565c0; color: #1565c0; }
+        #hornBtn { bottom: 140px; right: 30px; border: 2px solid #f44336; color: #f44336; display: none; }
+        #lightBtn { bottom: 140px; right: 110px; border: 2px solid #ffeb3b; color: #fbc02d; display: none; }
     </style>
 </head>
 
@@ -82,6 +83,8 @@
 
 <div id="joystickBase"><div id="joystick"></div></div>
 <div id="carBtn">CARRO</div>
+<div id="hornBtn" class="action-btn">BUZINA</div>
+<div id="lightBtn" class="action-btn">FAROL</div>
 
 <script>
 const canvas = document.getElementById("game");
@@ -139,16 +142,31 @@ function updateJoystick(touch) {
 }
 
 /* ESTADO DO JOGO */
-let player = { x: 0, y: 0, inCar: false, angle: 0, anim: 0 };
-let car = { x: 300, y: 300, vx: 0, vy: 0, angle: 0 };
+let player = { x: 0, y: 100, inCar: false, angle: 0, anim: 0 };
+let car = { x: 300, y: 300, vx: 0, vy: 0, angle: 0, lights: false };
 let inHouse = true;
-let door = { x: 0, y: 150 };
+let doorPos = { x: 0, y: 150 }; // Posição da porta no mundo
 let fase = 1;
 let score = 0;
 let coins = [];
 let pedestrians = [];
 
-/* BOTÃO CARRO */
+/* ÁUDIO DA BUZINA */
+function playHorn() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime); 
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+}
+
+/* BOTÕES DE AÇÃO */
 document.getElementById("carBtn").addEventListener("touchstart", (e) => {
     e.preventDefault();
     if (inHouse) return;
@@ -158,16 +176,30 @@ document.getElementById("carBtn").addEventListener("touchstart", (e) => {
     if (player.inCar) {
         player.inCar = false;
         player.x = car.x + 60 * Math.cos(car.angle + Math.PI/2); 
+        document.getElementById("hornBtn").style.display = "none";
+        document.getElementById("lightBtn").style.display = "none";
     } else if (dist < 100) {
         player.inCar = true;
+        document.getElementById("hornBtn").style.display = "flex";
+        document.getElementById("lightBtn").style.display = "flex";
     }
+}, { passive: false });
+
+document.getElementById("hornBtn").addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (player.inCar) playHorn();
+}, { passive: false });
+
+document.getElementById("lightBtn").addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (player.inCar) car.lights = !car.lights;
 }, { passive: false });
 
 function spawnPedestrian() {
     if (pedestrians.length < 8 && !inHouse) {
         pedestrians.push({
-            x: player.x + (Math.random() - 0.5) * 1000,
-            y: player.y + (Math.random() - 0.5) * 1000,
+            x: player.x + (Math.random() - 0.5) * 1500,
+            y: player.y + (Math.random() - 0.5) * 1500,
             angle: Math.random() * Math.PI * 2,
             speed: 1 + Math.random(),
             anim: 0,
@@ -181,7 +213,7 @@ function update() {
     const playerSpeed = 4;
     const carAcc = 0.6;
     const carFriction = 0.95;
-    const carMax = 10;
+    const carMax = 12;
 
     if (player.inCar) {
         car.vx += joy.x * carAcc;
@@ -195,13 +227,12 @@ function update() {
     } else {
         if (Math.abs(joy.x) > 0.1 || Math.abs(joy.y) > 0.1) {
             player.angle = Math.atan2(joy.y, joy.x);
-            player.anim += 0.2; // Velocidade da animação de andar
+            player.anim += 0.2;
         }
         player.x += joy.x * playerSpeed;
         player.y += joy.y * playerSpeed;
     }
 
-    // Pedestres
     if (!inHouse) {
         spawnPedestrian();
         pedestrians.forEach(p => {
@@ -213,14 +244,18 @@ function update() {
             p.y += Math.sin(p.angle) * p.speed;
             p.anim += 0.1;
         });
-    }
 
-    // Colisão Porta
-    if (Math.abs(player.x - door.x) < 35 && Math.abs(player.y - door.y) < 45) {
-        inHouse = !inHouse;
-        player.x = 0; player.y = inHouse ? 100 : -60;
-        joy.x = 0; joy.y = 0;
-        pedestrians = [];
+        // Colisão com a porta da casa (pelo lado de fora)
+        if (Math.abs(player.x - 0) < 40 && Math.abs(player.y - 145) < 30 && !player.inCar) {
+            inHouse = true;
+            player.x = 0; player.y = 100;
+        }
+    } else {
+        // Colisão com a porta (pelo lado de dentro)
+        if (Math.abs(player.x - 0) < 40 && Math.abs(player.y - 150) < 20) {
+            inHouse = false;
+            player.x = 0; player.y = 180;
+        }
     }
 
     if (!inHouse) {
@@ -230,7 +265,7 @@ function update() {
         coins.forEach(c => {
             if (!c.collected && Math.sqrt((player.x-c.x)**2 + (player.y-c.y)**2) < 35) {
                 c.collected = true; score += 10;
-                if (score >= fase * 100) { fase++; score = 0; alert("🔥 Fase " + fase + "!"); }
+                if (score >= fase * 100) { fase++; score = 0; }
             }
         });
     }
@@ -241,30 +276,29 @@ function drawPerson(x, y, angle, anim, color) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle + Math.PI/2);
-    
-    // Efeito de "Andar" (oscilação lateral e vertical)
     let bob = Math.sin(anim) * 3;
-    let tilt = Math.cos(anim) * 0.15;
-    ctx.rotate(tilt);
-
-    // Sombra
     ctx.fillStyle = "rgba(0,0,0,0.2)";
     ctx.beginPath(); ctx.ellipse(0, 15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
-
-    // Pernas (Alternando)
     ctx.fillStyle = "#212121";
     ctx.fillRect(-8, 10 + (Math.sin(anim) * 5), 6, 12);
     ctx.fillRect(2, 10 + (Math.cos(anim) * 5), 6, 12);
-
-    // Tronco
     ctx.fillStyle = color;
     ctx.fillRect(-12, -10 + bob, 24, 25);
-
-    // Cabeça
     ctx.fillStyle = "#ffe0bd";
     ctx.beginPath(); ctx.arc(0, -18 + bob, 11, 0, Math.PI*2); ctx.fill();
-
     ctx.restore();
+}
+
+function drawHouse() {
+    // Paredes
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(-200, -150, 400, 300);
+    // Detalhe do Telhado
+    ctx.fillStyle = "#3e2723";
+    ctx.fillRect(-210, -160, 420, 20);
+    // Porta
+    ctx.fillStyle = "#222";
+    ctx.fillRect(-40, 130, 80, 20);
 }
 
 function draw() {
@@ -272,28 +306,51 @@ function draw() {
     ctx.save();
     ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-    if (inHouse) {
-        ctx.fillStyle = "#5d4037"; ctx.fillRect(-300, -300, 600, 600);
-        ctx.strokeStyle = "#3e2723"; ctx.lineWidth = 20; ctx.strokeRect(-300, -300, 600, 600);
-        ctx.fillStyle = "#222"; ctx.fillRect(door.x - 40, door.y - 15, 80, 30);
-    } else {
-        ctx.fillStyle = "#2e7d32";
-        ctx.fillRect(player.x - canvas.width, player.y - canvas.height, canvas.width * 2, canvas.height * 2);
+    if (!inHouse) {
+        // Chão com textura (Grama quadriculada para referência de movimento)
+        let size = 200;
+        let startX = Math.floor((player.x - canvas.width) / size) * size;
+        let startY = Math.floor((player.y - canvas.height) / size) * size;
+        
+        for(let x = startX; x < player.x + canvas.width; x += size) {
+            for(let y = startY; y < player.y + canvas.height; y += size) {
+                ctx.fillStyle = ((Math.abs(x+y)/size) % 2 === 0) ? "#2e7d32" : "#388e3c";
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+
+        drawHouse();
 
         coins.forEach(c => { if (!c.collected) { ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, Math.PI*2); ctx.fill(); }});
-
-        // Pedestres
         pedestrians.forEach(p => drawPerson(p.x, p.y, p.angle, p.anim, "#4caf50"));
 
         // Carro
         ctx.save();
         ctx.translate(car.x, car.y);
         ctx.rotate(car.angle);
+        
+        // Faróis
+        if (car.lights) {
+            let grad = ctx.createRadialGradient(50, 0, 10, 150, 0, 100);
+            grad.addColorStop(0, "rgba(255, 255, 200, 0.6)");
+            grad.addColorStop(1, "transparent");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.moveTo(40,-20); ctx.lineTo(180, -60); ctx.lineTo(180, 60); ctx.lineTo(40, 20); ctx.fill();
+        }
+
         ctx.fillStyle = "#1565c0"; ctx.fillRect(-45, -25, 90, 50);
         ctx.fillStyle = "#1e88e5"; ctx.fillRect(-20, -20, 40, 40);
-        ctx.fillStyle = "#000"; ctx.fillRect(-35, -32, 20, 10); ctx.fillRect(15, -32, 20, 10);
+        ctx.fillStyle = "#000"; 
+        ctx.fillRect(-35, -32, 20, 10); ctx.fillRect(15, -32, 20, 10);
         ctx.fillRect(-35, 22, 20, 10); ctx.fillRect(15, 22, 20, 10);
         ctx.restore();
+    } else {
+        // Interior da Casa
+        ctx.fillStyle = "#4e342e";
+        ctx.fillRect(-canvas.width, -canvas.height, canvas.width*2, canvas.height*2);
+        ctx.fillStyle = "#5d4037"; ctx.fillRect(-300, -300, 600, 600);
+        ctx.strokeStyle = "#3e2723"; ctx.lineWidth = 20; ctx.strokeRect(-300, -300, 600, 600);
+        ctx.fillStyle = "#222"; ctx.fillRect(-40, 285, 80, 30);
     }
 
     if (!player.inCar) drawPerson(player.x, player.y, player.angle, player.anim, "#ff5722");
