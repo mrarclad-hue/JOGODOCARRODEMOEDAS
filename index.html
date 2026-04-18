@@ -28,36 +28,6 @@
             z-index: 10;
         }
 
-        #controls-right {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .game-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 3px solid #fff;
-            background: rgba(255,255,255,0.8);
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            touch-action: none;
-            font-size: 12px;
-            color: #333;
-        }
-
-        #carBtn { border-color: #1565c0; color: #1565c0; width: 85px; height: 85px; }
-        #hornBtn { background: #ffeb3b; border-color: #fbc02d; }
-        #lightBtn { background: #cfd8dc; border-color: #455a64; }
-
         #joystickBase {
             position: fixed;
             bottom: 40px;
@@ -80,6 +50,27 @@
             left: 30px;
             pointer-events: none;
         }
+
+        .action-btn {
+            position: fixed;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: rgba(255,255,255,0.3);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            touch-action: none;
+        }
+
+        #carBtn { bottom: 130px; right: 30px; background: rgba(21, 101, 192, 0.7); }
+        #hornBtn { bottom: 40px; right: 30px; background: rgba(255, 193, 7, 0.7); }
+        #lightBtn { bottom: 40px; right: 110px; background: rgba(76, 175, 80, 0.7); }
     </style>
 </head>
 
@@ -93,12 +84,9 @@
 <canvas id="game"></canvas>
 
 <div id="joystickBase"><div id="joystick"></div></div>
-
-<div id="controls-right">
-    <div id="lightBtn" class="game-btn">FAROL</div>
-    <div id="hornBtn" class="game-btn">BUZINA</div>
-    <div id="carBtn" class="game-btn">CARRO</div>
-</div>
+<div id="carBtn" class="action-btn">CARRO</div>
+<div id="hornBtn" class="action-btn">BUZINA</div>
+<div id="lightBtn" class="action-btn">FAROL</div>
 
 <script>
 const canvas = document.getElementById("game");
@@ -111,7 +99,21 @@ function resize(){
 resize();
 window.addEventListener("resize", resize);
 
-/* CONTROLES MULTI-TOUCH */
+/* ÁUDIO (BUZINA) */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playHorn() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+}
+
+/* CONTROLES */
 let joy = {x:0, y:0};
 let joystickTouchId = null;
 const base = document.getElementById("joystickBase");
@@ -126,9 +128,7 @@ base.addEventListener("touchstart", (e) => {
 
 window.addEventListener("touchmove", (e) => {
     for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === joystickTouchId) {
-            updateJoystick(e.changedTouches[i]);
-        }
+        if (e.changedTouches[i].identifier === joystickTouchId) updateJoystick(e.changedTouches[i]);
     }
 }, { passive: false });
 
@@ -137,8 +137,7 @@ window.addEventListener("touchend", (e) => {
         if (e.changedTouches[i].identifier === joystickTouchId) {
             joystickTouchId = null;
             joy.x = 0; joy.y = 0;
-            stick.style.left = "30px";
-            stick.style.top = "30px";
+            stick.style.left = "30px"; stick.style.top = "30px";
         }
     }
 });
@@ -150,184 +149,126 @@ function updateJoystick(touch) {
     let d = Math.sqrt(x*x + y*y), max = 40;
     if (d > max) { x = x/d*max; y = y/d*max; }
     joy.x = x/max; joy.y = y/max;
-    stick.style.left = (x + 30) + "px";
-    stick.style.top = (y + 30) + "px";
+    stick.style.left = (x + 30) + "px"; stick.style.top = (y + 30) + "px";
 }
 
 /* ESTADO DO JOGO */
-let player = { x: 0, y: 0, inCar: false, angle: 0, anim: 0 };
-let car = { x: 300, y: 300, vx: 0, vy: 0, angle: 0, lights: false };
+let player = { x: 0, y: 100, inCar: false, angle: 0, anim: 0 };
+let car = { x: 200, y: 200, vx: 0, vy: 0, angle: 0, lights: false };
 let inHouse = true;
-let housePos = { x: 0, y: -200 }; // Posição da casa no mundo exterior
-let door = { x: 0, y: 150 };
+const doorPos = { x: 0, y: 300 }; // Saída da casa
 let fase = 1;
 let score = 0;
 let coins = [];
 let pedestrians = [];
 
-/* SONS (Web Audio API) */
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playHorn() {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "square";
-    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-}
-
-/* BOTÕES */
+/* BOTÕES DE AÇÃO */
 document.getElementById("carBtn").addEventListener("touchstart", (e) => {
     e.preventDefault();
     if (inHouse) return;
-    let dx = player.x - car.x;
-    let dy = player.y - car.y;
-    let dist = Math.sqrt(dx*dx + dy*dy);
+    let dist = Math.sqrt((player.x - car.x)**2 + (player.y - car.y)**2);
     if (player.inCar) {
         player.inCar = false;
-        player.x = car.x + 60 * Math.cos(car.angle + Math.PI/2); 
+        player.x = car.x + 60 * Math.cos(car.angle + Math.PI/2);
     } else if (dist < 100) {
         player.inCar = true;
     }
-}, { passive: false });
+});
 
 document.getElementById("hornBtn").addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (player.inCar) playHorn();
-}, { passive: false });
+    playHorn();
+});
 
 document.getElementById("lightBtn").addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (player.inCar) car.lights = !car.lights;
-}, { passive: false });
+    car.lights = !car.lights;
+});
 
-function spawnPedestrian() {
-    if (pedestrians.length < 8 && !inHouse) {
-        pedestrians.push({
-            x: player.x + (Math.random() - 0.5) * 1000,
-            y: player.y + (Math.random() - 0.5) * 1000,
-            angle: Math.random() * Math.PI * 2,
-            speed: 1 + Math.random(),
-            anim: 0,
-            changeDir: Date.now() + 2000
-        });
-    }
-}
-
-/* ATUALIZAÇÃO */
 function update() {
-    const playerSpeed = 4;
-    const carAcc = 0.6;
-    const carFriction = 0.95;
-    const carMax = 10;
+    const pSpeed = 4, cAcc = 0.6, cFric = 0.95, cMax = 10;
 
     if (player.inCar) {
-        car.vx += joy.x * carAcc;
-        car.vy += joy.y * carAcc;
-        let speed = Math.sqrt(car.vx*car.vx + car.vy*car.vy);
-        if (speed > carMax) { car.vx = (car.vx/speed) * carMax; car.vy = (car.vy/speed) * carMax; }
-        if (speed > 0.5) car.angle = Math.atan2(car.vy, car.vx);
+        car.vx += joy.x * cAcc; car.vy += joy.y * cAcc;
+        let s = Math.sqrt(car.vx**2 + car.vy**2);
+        if (s > cMax) { car.vx = (car.vx/s)*cMax; car.vy = (car.vy/s)*cMax; }
+        if (s > 0.5) car.angle = Math.atan2(car.vy, car.vx);
         car.x += car.vx; car.y += car.vy;
-        car.vx *= carFriction; car.vy *= carFriction;
+        car.vx *= cFric; car.vy *= cFric;
         player.x = car.x; player.y = car.y;
     } else {
         if (Math.abs(joy.x) > 0.1 || Math.abs(joy.y) > 0.1) {
             player.angle = Math.atan2(joy.y, joy.x);
             player.anim += 0.2;
         }
-        player.x += joy.x * playerSpeed;
-        player.y += joy.y * playerSpeed;
+        player.x += joy.x * pSpeed;
+        player.y += joy.y * pSpeed;
     }
 
+    // Lógica de entrar/sair da casa
+    let distToDoor = Math.sqrt((player.x - doorPos.x)**2 + (player.y - doorPos.y)**2);
+    if (distToDoor < 40) {
+        if (inHouse) {
+            inHouse = false;
+            player.y = doorPos.y + 50; // cospe pra fora
+        } else {
+            inHouse = true;
+            player.y = doorPos.y - 50; // puxa pra dentro
+        }
+        joy.x = 0; joy.y = 0;
+    }
+
+    // Pedestres e Moedas (Apenas fora)
     if (!inHouse) {
-        spawnPedestrian();
+        if (pedestrians.length < 5) pedestrians.push({
+            x: car.x + (Math.random()-0.5)*1000, y: car.y + (Math.random()-0.5)*1000,
+            angle: Math.random()*Math.PI*2, speed: 1.5, anim: 0
+        });
         pedestrians.forEach(p => {
-            if (Date.now() > p.changeDir) {
-                p.angle += (Math.random() - 0.5);
-                p.changeDir = Date.now() + 2000 + Math.random() * 3000;
-            }
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
+            p.x += Math.cos(p.angle)*p.speed; p.y += Math.sin(p.angle)*p.speed;
             p.anim += 0.1;
         });
 
-        // Colisão com a porta da casa (Lado de fora)
-        let dx = player.x - housePos.x;
-        let dy = player.y - (housePos.y + 150); // Porta fica na base da casa
-        if (Math.sqrt(dx*dx + dy*dy) < 40) {
-            inHouse = true;
-            player.x = 0; player.y = 100;
-            joy.x = 0; joy.y = 0;
-        }
-    } else {
-        // Colisão com a porta (Lado de dentro)
-        if (Math.abs(player.x - door.x) < 35 && Math.abs(player.y - door.y) < 45) {
-            inHouse = false;
-            player.x = housePos.x; player.y = housePos.y + 220;
-            joy.x = 0; joy.y = 0;
-            pedestrians = [];
-        }
-    }
-
-    if (!inHouse) {
-        if (Math.random() < 0.02 && coins.length < 20) {
-            coins.push({ x: player.x + (Math.random()-0.5)*1500, y: player.y + (Math.random()-0.5)*1500, collected: false });
+        if (Math.random() < 0.02 && coins.length < 15) {
+            coins.push({ x: player.x + (Math.random()-0.5)*1200, y: player.y + (Math.random()-0.5)*1200, collected: false });
         }
         coins.forEach(c => {
             if (!c.collected && Math.sqrt((player.x-c.x)**2 + (player.y-c.y)**2) < 35) {
                 c.collected = true; score += 10;
-                if (score >= fase * 100) { fase++; score = 0; }
+                if (score >= fase * 100) { fase++; score = 0; alert("Fase " + fase); }
             }
         });
     }
 }
 
-/* DESENHOS */
-function drawGrassTexture() {
-    const size = 100;
+function drawGrid() {
+    const size = 150;
     const startX = Math.floor((player.x - canvas.width) / size) * size;
     const startY = Math.floor((player.y - canvas.height) / size) * size;
-    const endX = player.x + canvas.width;
-    const endY = player.y + canvas.height;
 
-    ctx.fillStyle = "#2e7d32";
-    ctx.fillRect(player.x - canvas.width, player.y - canvas.height, canvas.width * 2, canvas.height * 2);
-    
-    ctx.strokeStyle = "rgba(0,0,0,0.05)";
-    ctx.lineWidth = 1;
-    for (let x = startX; x < endX; x += size) {
-        for (let y = startY; y < endY; y += size) {
-            ctx.beginPath();
-            ctx.moveTo(x + 10, y + 10);
-            ctx.lineTo(x + 15, y + 5);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(x + 50, y + 50, 2, 0, Math.PI*2);
-            ctx.stroke();
+    for (let x = startX; x < player.x + canvas.width; x += size) {
+        for (let y = startY; y < player.y + canvas.height; y += size) {
+            ctx.fillStyle = (Math.floor(x/size) + Math.floor(y/size)) % 2 === 0 ? "#2e7d32" : "#388e3c";
+            ctx.fillRect(x, y, size, size);
+            ctx.strokeStyle = "rgba(0,0,0,0.05)";
+            ctx.strokeRect(x, y, size, size);
         }
     }
 }
 
-function drawPerson(x, y, angle, anim, color) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle + Math.PI/2);
-    let bob = Math.sin(anim) * 3;
-    let tilt = Math.cos(anim) * 0.15;
-    ctx.rotate(tilt);
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
-    ctx.beginPath(); ctx.ellipse(0, 15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = "#212121";
-    ctx.fillRect(-8, 10 + (Math.sin(anim) * 5), 6, 12);
-    ctx.fillRect(2, 10 + (Math.cos(anim) * 5), 6, 12);
-    ctx.fillStyle = color;
-    ctx.fillRect(-12, -10 + bob, 24, 25);
-    ctx.fillStyle = "#ffe0bd";
-    ctx.beginPath(); ctx.arc(0, -18 + bob, 11, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+function drawHouse() {
+    // Chão e Paredes
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(-300, -300, 600, 600);
+    ctx.strokeStyle = "#3e2723";
+    ctx.lineWidth = 15;
+    ctx.strokeRect(-300, -300, 600, 600);
+    // Tapete da Porta
+    ctx.fillStyle = "#4e342e";
+    ctx.fillRect(doorPos.x - 50, doorPos.y - 20, 100, 40);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText("SAÍDA", doorPos.x - 30, doorPos.y + 5);
 }
 
 function draw() {
@@ -335,50 +276,46 @@ function draw() {
     ctx.save();
     ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-    if (inHouse) {
-        ctx.fillStyle = "#5d4037"; ctx.fillRect(-300, -300, 600, 600);
-        ctx.strokeStyle = "#3e2723"; ctx.lineWidth = 20; ctx.strokeRect(-300, -300, 600, 600);
-        ctx.fillStyle = "#222"; ctx.fillRect(door.x - 40, door.y - 15, 80, 30);
-    } else {
-        drawGrassTexture();
+    if (!inHouse) drawGrid();
+    drawHouse(); // Sempre desenha a casa
 
-        // Desenhar a Casa no Exterior
-        ctx.save();
-        ctx.translate(housePos.x, housePos.y);
-        ctx.fillStyle = "#5d4037"; ctx.fillRect(-150, -150, 300, 300);
-        ctx.strokeStyle = "#3e2723"; ctx.lineWidth = 10; ctx.strokeRect(-150, -150, 300, 300);
-        ctx.fillStyle = "#222"; ctx.fillRect(-40, 135, 80, 25); // Porta
-        ctx.restore();
-
+    if (!inHouse) {
         coins.forEach(c => { if (!c.collected) { ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, Math.PI*2); ctx.fill(); }});
-        pedestrians.forEach(p => drawPerson(p.x, p.y, p.angle, p.anim, "#4caf50"));
+        pedestrians.forEach(p => {
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle+Math.PI/2);
+            ctx.fillStyle = "#4caf50"; ctx.fillRect(-10, -10, 20, 20); ctx.restore();
+        });
 
-        // Carro
+        // Desenhar Carro
         ctx.save();
         ctx.translate(car.x, car.y);
         ctx.rotate(car.angle);
         
         // Faróis
         if (car.lights) {
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
-            ctx.beginPath();
-            ctx.moveTo(40, -20); ctx.lineTo(150, -60); ctx.lineTo(150, 60); ctx.lineTo(40, 20);
-            ctx.fill();
+            const grd = ctx.createRadialGradient(50, 0, 10, 150, 0, 150);
+            grd.addColorStop(0, "rgba(255, 255, 200, 0.6)");
+            grd.addColorStop(1, "rgba(255, 255, 200, 0)");
+            ctx.fillStyle = grd;
+            ctx.beginPath(); ctx.moveTo(40, 0); ctx.lineTo(200, -80); ctx.lineTo(200, 80); ctx.fill();
         }
 
         ctx.fillStyle = "#1565c0"; ctx.fillRect(-45, -25, 90, 50);
-        ctx.fillStyle = "#1e88e5"; ctx.fillRect(-20, -20, 40, 40);
         ctx.fillStyle = "#000"; ctx.fillRect(-35, -32, 20, 10); ctx.fillRect(15, -32, 20, 10);
         ctx.fillRect(-35, 22, 20, 10); ctx.fillRect(15, 22, 20, 10);
-        
-        // Luzes frontais (detalhe)
-        ctx.fillStyle = car.lights ? "#fff" : "#444";
-        ctx.fillRect(40, -20, 5, 10); ctx.fillRect(40, 10, 5, 10);
-        
         ctx.restore();
     }
 
-    if (!player.inCar) drawPerson(player.x, player.y, player.angle, player.anim, "#ff5722");
+    // Player
+    if (!player.inCar) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.rotate(player.angle + Math.PI/2);
+        let bob = Math.sin(player.anim) * 4;
+        ctx.fillStyle = "#ff5722"; ctx.fillRect(-12, -10 + bob, 24, 25);
+        ctx.fillStyle = "#ffe0bd"; ctx.beginPath(); ctx.arc(0, -18 + bob, 11, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
 
     ctx.restore();
     document.getElementById("txtFase").innerText = "Fase: " + fase;
