@@ -3,48 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elite Airborne - 3D Endless Parkour</title>
+    <title>Elite Airborne - Pro Edition</title>
     <style>
-        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; background: #111; width: 100vw; height: 100vh; }
+        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; overflow: hidden; background: #1e272e; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; background: #000; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
         .interactive { pointer-events: auto; }
         
+        #rotate-ui-btn { 
+            position: absolute; top: 15px; right: 15px; width: 55px; height: 55px; 
+            background: #8e44ad; border: 3px solid #fff; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; z-index: 1100; 
+            color: white; font-size: 24px; pointer-events: auto; 
+        }
+
         #menu-container, #end-screen { 
             position: absolute; width: 100%; height: 100%; background: #1e272e; 
             z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            overflow-y: auto; padding: 20px 0;
+            overflow-y: auto; padding: 20px 0; box-sizing: border-box;
         }
         #end-screen { background: rgba(0,0,0,0.9); color: white; display: none; pointer-events: auto; }
 
         .panel { background: #2f3640; padding: 12px; border-radius: 15px; border: 2px solid #3498db; text-align: center; color: white; margin-bottom: 10px; width: 85%; max-width: 350px; }
         .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; color: #fff; cursor: pointer; margin: 5px; pointer-events: auto; }
         .btn-p1 { background: #3498db; width: 45%; }
+        .btn-p2 { background: #e67e22; width: 45%; }
         .btn-menu { background: #7f8c8d; width: 45%; }
+        .btn-map { background: #7f8c8d; flex: 1; margin: 2px; font-size: 10px; }
+        .btn-map.selected { background: #27ae60; border: 2px solid #fff; }
 
         .players-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 8px; }
         .btn-player-count { background: #7f8c8d; padding: 8px 0; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
         .btn-player-count.selected { background: #9b59b6; border: 2px solid #fff; }
 
-        #controls { position: absolute; bottom: 30px; width: 100%; display: none; justify-content: space-between; padding: 0 30px; box-sizing: border-box; align-items: flex-end; }
-        .control-btn { width: 75px; height: 75px; border-radius: 50%; background: rgba(231,76,60,0.6); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid rgba(255,255,255,0.4); margin-bottom: 10px; font-size: 14px; }
+        #controls { position: absolute; bottom: 30px; width: 100%; display: none; justify-content: space-between; padding: 0 40px; box-sizing: border-box; align-items: flex-end; }
+        .control-btn { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid rgba(255,255,255,0.4); margin: 5px; }
         
-        .joy-container { width: 120px; height: 120px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; background: rgba(255,255,255,0.1); pointer-events: auto; }
-        .joy-knob { width: 50px; height: 50px; background: #fff; border-radius: 50%; position: absolute; top: 31px; left: 31px; pointer-events: none; }
-        
+        #joystick { width: 130px; height: 130px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; background: rgba(255,255,255,0.1); pointer-events: auto; }
+        #knob { width: 55px; height: 55px; background: #fff; border-radius: 50%; position: absolute; top: 37.5px; left: 37.5px; pointer-events: none; }
+        #btn-group-right { display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
         #stats { position: absolute; top: 15px; left: 15px; color: white; background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 20px; font-size: 14px; border: 1px solid #3498db; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 20px; font-weight: bold; display: none; }
+        #room-code-display { font-size: 22px; color: #f1c40f; font-weight: bold; margin-bottom: 15px; display: none; }
     </style>
 </head>
 <body>
 
+<div id="rotate-ui-btn" class="interactive">🔄</div>
+
 <div id="menu-container">
-    <h1 style="color: white; letter-spacing: 2px; margin: 10px 0; text-align: center;">ELITE AIRBORNE 3D</h1>
-    <p style="color: #616e7c; margin-top: 0;">INFINITE PARKOUR FPS</p>
+    <h1 style="color: white; letter-spacing: 2px; margin: 10px 0;">ELITE AIRBORNE</h1>
+    <div id="room-code-display">CÓDIGO: <span id="code-number">----</span></div>
     
     <div class="panel">
-        <h4>QUANTIDADE DE BOTS (MAX)</h4>
+        <h4>MÁXIMO DE JOGADORES</h4>
         <div class="players-grid">
             <div id="p-count-1" class="btn-player-count interactive">1</div>
             <div id="p-count-2" class="btn-player-count interactive selected">2</div>
@@ -60,13 +72,25 @@
     </div>
 
     <div class="panel">
-        <button id="solo-btn" class="btn btn-p1" style="width: 95%; background: #2ecc71; font-size: 16px;">INICIAR JOGO 3D</button>
+        <h4>SELECIONAR MAPA</h4>
+        <div style="display: flex;">
+            <div id="map-0" class="btn btn-map selected">URBANO</div>
+            <div id="map-1" class="btn btn-map">DESERTO</div>
+            <div id="map-2" class="btn btn-map">FLORESTA</div>
+        </div>
     </div>
-    <div style="color: #bbb; font-size: 12px; text-align: center; max-width: 300px;">Use o analógico Esquerdo para andar e o Direito para rodar a câmera. Não caia no chão vermelho!</div>
+    <div class="panel">
+        <div style="display: flex; justify-content: space-between;">
+            <div id="p1-btn" class="btn btn-p1">CRIAR</div>
+            <div id="p2-btn" class="btn btn-p2">ENTRAR</div>
+        </div>
+        <button id="solo-btn" class="btn btn-p1" style="width: 95%; background: #2ecc71; margin-top: 10px;">JOGAR SOLO (BOTS)</button>
+    </div>
+    <div id="status-display" style="color: #bdc3c7;">Pronto para iniciar</div>
 </div>
 
 <div id="end-screen">
-    <h1 id="end-msg">FIM DE JOGO</h1>
+    <h1 id="end-msg">VITÓRIA!</h1>
     <p id="end-stats"></p>
     <div style="display: flex; width: 100%; justify-content: center; gap: 10px; pointer-events: auto;">
         <button class="btn btn-p1" id="final-retry-btn">REJOGAR</button>
@@ -74,24 +98,23 @@
     </div>
 </div>
 
-<div id="crosshair">+</div>
-
 <div id="ui-layer">
-    <div id="stats">HP: <span id="hp-display">100</span> | KILLS: <span id="kill-count">0</span> | DISTÂNCIA: <span id="dist-display">0</span>m</div>
+    <div id="stats">KILLS: <span id="kill-count">0</span>/4 | JOGADORES: <span id="connected-count">1</span>/<span id="max-players-display">2</span> | G: <span id="grenade-count">0</span></div>
     <div id="controls">
-        <div id="joystick-left" class="joy-container"><div id="knob-left" class="joy-knob"></div></div>
-        
-        <div style="display: flex; flex-direction: column; align-items: center; pointer-events: auto;">
-            <div id="btn-jump" class="control-btn" style="background: rgba(46,204,113,0.7);">PULAR</div>
-            <div id="btn-shoot" class="control-btn" style="background: rgba(231,76,60,0.8); width: 85px; height: 85px;">FOGO</div>
+        <div id="joystick"><div id="knob"></div></div>
+        <div id="btn-group-right" class="interactive">
+            <div id="btn-grenade" class="control-btn" style="background: rgba(241,196,15,0.4);">GRANADA</div>
+            <div style="display: flex;">
+                <div id="btn-jump" class="control-btn" style="background: rgba(46,204,113,0.4);">PULAR</div>
+                <div id="btn-shoot" class="control-btn" style="background: rgba(231,76,60,0.4);">FOGO</div>
+            </div>
         </div>
-
-        <div id="joystick-right" class="joy-container"><div id="knob-right" class="joy-knob"></div></div>
     </div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
 
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
 // --- ÁUDIO ENGINE ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -100,391 +123,319 @@ function playSound(type) {
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
-    if(type==='shoot'){ osc.type='square'; osc.frequency.setValueAtTime(200,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.05); gain.gain.setValueAtTime(0.08,now); }
-    else if(type==='jump'){ osc.type='sine'; osc.frequency.setValueAtTime(300,now); osc.frequency.exponentialRampToValueAtTime(500,now+0.1); gain.gain.setValueAtTime(0.1,now); }
-    else if(type==='hurt'){ osc.type='sawtooth'; osc.frequency.setValueAtTime(120,now); gain.gain.setValueAtTime(0.2,now); }
-    osc.start(); osc.stop(now + 0.3);
+    if(type==='shoot'){ osc.type='square'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.1); gain.gain.setValueAtTime(0.1,now); }
+    else if(type==='jump'){ osc.type='sine'; osc.frequency.setValueAtTime(400,now); gain.gain.setValueAtTime(0.1,now); }
+    else if(type==='exp'){ osc.type='sawtooth'; osc.frequency.setValueAtTime(100,now); gain.gain.setValueAtTime(0.3,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.5); }
+    else if(type==='pickup'){ osc.type='triangle'; osc.frequency.setValueAtTime(800,now); gain.gain.setValueAtTime(0.1,now); }
+    osc.start(); osc.stop(now + 0.5);
 }
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-let gameActive = false, myKills = 0, maxPlayers = 2;
-let bullets = [], bots = [], items = [];
-
-// Mecânicas do Jogador (Posicionamento e Física de Pulo para Parkour)
-const player = {
-    x: 4.5, y: 4.5, z: 0, // z representa a altura do pulo
-    angle: 0, speed: 0.1, rotSpeed: 0.04,
-    hp: 100, vz: 0, isGrounded: true, distanceTravelled: 0
-};
-
-// Inputs analógicos duplos
-const input = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, shoot: false, joyLeftId: null, joyRightId: null };
-
-// --- MAPA INFINITO GERADO VIA ALGORITMO/FUNÇÃO ---
-// Retorna 1 para bloco de Parkour estável, 0 para Vazio (Chão de Lava)
-function getMapTile(x, y) {
-    let ix = Math.floor(x);
-    let iy = Math.floor(y);
-    if (ix < 0 || iy < 0) return 0;
-    if (ix >= 3 && ix <= 6 && iy >= 3 && iy <= 6) return 1; // Plataforma inicial estável de spawn
-
-    // Criação matemática de ilhas/plataformas intercaladas infinitas para o Parkour
-    let pattern = Math.sin(ix * 0.8) + Math.cos(iy * 0.8);
-    if (pattern > 0.4) {
-        return 1; // Plataforma sólida flutuante
-    }
-    return 0; // Vazio/Espaço
-}
-
-// Interfaces e Responsividade
+const V_WIDTH = 1280, V_HEIGHT = 720;
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const scale = Math.min(window.innerWidth / V_WIDTH, window.innerHeight / V_HEIGHT);
+    canvas.width = V_WIDTH * scale; canvas.height = V_HEIGHT * scale;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
 }
 window.addEventListener('resize', resize); resize();
 
-// Tratamento de Toques (Multi-touch para os dois analógicos + botões)
+// --- VARIÁVEIS DO JOGO ---
+let peer, conn, isHost = false, gameActive = false, myKills = 0;
+let maxPlayers = 2; 
+let bots = []; // Lista dinâmica de Bots
+const player = { x: 200, y: 0, vx: 0, vy: 0, w: 45, h: 65, facing: 1, anim: 0, color: '#3498db', hp: 100, grounded: false, grens: 0 };
+const remotePlayer = { x: 600, y: 0, targetX: 600, targetY: 0, w: 45, h: 65, facing: 1, anim: 0, color: '#e67e22', hp: 100, active: false };
+let bullets = [], grens = [], items = [], bombs = [], plane = { x: -500, active: false }, selectedMapIndex = 0;
+
+const maps = [
+    { bg: '#2c3e50', plat: '#7f8c8d', rects: [{x: 0, y: 620, w: 4000, h: 100}, {x: 400, y: 450, w: 400, h: 30}, {x: 1000, y: 350, w: 400, h: 30}] },
+    { bg: '#d35400', plat: '#e67e22', rects: [{x: 0, y: 620, w: 4000, h: 100}, {x: 200, y: 480, w: 300, h: 30}, {x: 700, y: 380, w: 300, h: 30}] },
+    { bg: '#1b1464', plat: '#0652DD', rects: [{x: 0, y: 620, w: 4000, h: 100}, {x: 300, y: 420, w: 500, h: 30}, {x: 900, y: 300, w: 300, h: 30}] }
+];
+
+const input = { x: 0, jump: false, shoot: false, gren: false, joyId: null };
+
 function handleTouch(e) {
+    if (e.target.id === 'final-retry-btn' || e.target.id === 'final-menu-btn') return;
     e.preventDefault();
     const touches = e.touches;
-    input.shoot = false;
-
-    let leftActive = false;
-    let rightActive = false;
-
-    const rectLeft = document.getElementById('joystick-left').getBoundingClientRect();
-    const rectRight = document.getElementById('joystick-right').getBoundingClientRect();
-
-    const cxLeft = rectLeft.left + rectLeft.width / 2;
-    const cyLeft = rectLeft.top + rectLeft.height / 2;
-    const cxRight = rectRight.left + rectRight.width / 2;
-    const cyRight = rectRight.top + rectRight.height / 2;
+    input.jump = input.shoot = input.gren = false;
+    let joyActive = false;
 
     for (let t of touches) {
         const el = document.elementFromPoint(t.clientX, t.clientY);
-
-        // Analógico Esquerdo - Movimentação do Corpo
-        if (t.clientX < window.innerWidth / 2 && (t.identifier === input.joyLeftId || (el && (el.id==='joystick-left' || el.id==='knob-left')))) {
-            if(input.joyLeftId === null) input.joyLeftId = t.identifier;
-            let dx = t.clientX - cxLeft;
-            let dy = t.clientY - cyLeft;
-            let dist = Math.hypot(dx, dy) || 1;
-            input.moveX = dx / dist;
-            input.moveY = dy / dist;
-            let kf = Math.min(30, dist);
-            document.getElementById('knob-left').style.transform = `translate(${input.moveX * kf}px, ${input.moveY * kf}px)`;
-            leftActive = true;
-            continue;
+        if ((el && (el.id === 'joystick' || el.id === 'knob')) || t.identifier === input.joyId) {
+            if (input.joyId === null) input.joyId = t.identifier;
+            const rect = document.getElementById('joystick').getBoundingClientRect();
+            input.x = (t.clientX - (rect.left + rect.width / 2)) < 0 ? -1 : 1;
+            document.getElementById('knob').style.transform = `translateX(${Math.max(-35, Math.min(35, t.clientX - (rect.left + rect.width / 2)))}px)`;
+            joyActive = true; continue;
         }
-
-        // Analógico Direito - Rotação de Olhar 3D / FPS
-        if (t.clientX >= window.innerWidth / 2 && (t.identifier === input.joyRightId || (el && (el.id==='joystick-right' || el.id==='knob-right')))) {
-            if(input.joyRightId === null) input.joyRightId = t.identifier;
-            let dx = t.clientX - cxRight;
-            let dy = t.clientY - cyRight;
-            let dist = Math.hypot(dx, dy) || 1;
-            input.lookX = dx / dist * (dist / 30);
-            rightActive = true;
-            document.getElementById('knob-right').style.transform = `translate(${dx/dist * Math.min(30, dist)}px, ${dy/dist * Math.min(30, dist)}px)`;
-            continue;
-        }
-
-        if(!el) continue;
-        if(!gameActive) {
-            if(el.id === 'solo-btn') start3DGame();
-            if(el.id.includes('p-count-')) {
+        if (!el) continue;
+        if (!gameActive) {
+            if (el.id === 'p1-btn') createRoom();
+            if (el.id === 'p2-btn') joinRoom();
+            if (el.id === 'solo-btn') startSoloGame();
+            if (el.id.includes('map-')) {
+                selectedMapIndex = parseInt(el.id.split('-')[1]);
+                document.querySelectorAll('.btn-map').forEach((b, i) => b.classList.toggle('selected', i === selectedMapIndex));
+            }
+            if (el.id.includes('p-count-')) {
                 maxPlayers = parseInt(el.id.split('-')[2]);
                 document.querySelectorAll('.btn-player-count').forEach((b, i) => b.classList.toggle('selected', (i + 1) === maxPlayers));
+                document.getElementById('max-players-display').innerText = maxPlayers;
             }
-        } else {
-            if(el.id === 'btn-jump' && player.isGrounded) { player.vz = 0.25; player.isGrounded = false; playSound('jump'); }
-            if(el.id === 'btn-shoot') input.shoot = true;
         }
+        if (el.id === 'btn-jump') input.jump = true;
+        if (el.id === 'btn-shoot') input.shoot = true;
+        if (el.id === 'btn-grenade') input.gren = true;
     }
-
-    if (!leftActive) { input.moveX = 0; input.moveY = 0; input.joyLeftId = null; document.getElementById('knob-left').style.transform = 'translate(0px, 0px)'; }
-    if (!rightActive) { input.lookX = 0; input.joyRightId = null; document.getElementById('knob-right').style.transform = 'translate(0px, 0px)'; }
+    if (!joyActive) { input.x = 0; input.joyId = null; document.getElementById('knob').style.transform = 'translateX(0)'; }
 }
 
 document.addEventListener('touchstart', handleTouch, {passive: false});
 document.addEventListener('touchmove', handleTouch, {passive: false});
 document.addEventListener('touchend', handleTouch, {passive: false});
-document.getElementById('final-retry-btn').addEventListener('click', () => { startReset(); });
+document.getElementById('final-retry-btn').addEventListener('click', resetGame);
 document.getElementById('final-menu-btn').addEventListener('click', () => location.reload());
 
-function start3DGame() {
+function createRoom() {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    isHost = true; peer = new Peer("ELITE-"+code);
+    peer.on('open', () => {
+        document.getElementById('code-number').innerText = code;
+        document.getElementById('room-code-display').style.display = 'block';
+        document.getElementById('status-display').innerText = "Aguardando rival...";
+    });
+    peer.on('connection', c => { conn = c; conn.on('open', () => { conn.send({type:'map', i:selectedMapIndex, maxP: maxPlayers}); setupNetwork(); })});
+    peer.on('error', () => location.reload());
+}
+
+function joinRoom() {
+    const code = prompt("Código da Sala:"); if(!code) return;
+    isHost = false; peer = new Peer();
+    peer.on('open', () => { const c = peer.connect("ELITE-"+code); c.on('open', () => { conn = c; setupNetwork(); }); });
+}
+
+function startSoloGame() {
+    isHost = true;
     document.getElementById('menu-container').style.display = 'none';
     document.getElementById('controls').style.display = 'flex';
-    document.getElementById('crosshair').style.display = 'block';
+    generateBots();
     gameActive = true;
-    generateBots3D();
+    spawnLoop();
     gameLoop();
 }
 
-function generateBots3D() {
+function generateBots() {
     bots = [];
-    for(let i=0; i<maxPlayers-1; i++) {
+    let neededBots = maxPlayers - 1; // Preenche as vagas restantes com bots
+    for(let i = 0; i < neededBots; i++) {
         bots.push({
-            x: 5.5 + Math.random()*4, y: 5.5 + Math.random()*4,
-            hp: 100, color: i === 0 ? '#e67e22' : '#e74c3c',
-            lastShot: 0, angle: Math.random()*6
+            id: 'BOT-' + (i+1),
+            x: 500 + (i * 400), y: 0, vx: 0, vy: 0, w: 45, h: 65,
+            facing: 1, anim: 0, color: '#e74c3c', hp: 100, grounded: false,
+            lastShot: 0, changeDirTimer: 0, moveDir: 1
         });
+    }
+    document.getElementById('connected-count').innerText = maxPlayers;
+}
+
+function setupNetwork() {
+    conn.on('data', d => {
+        if(d.type==='sync') { remotePlayer.targetX=d.x; remotePlayer.targetY=d.y; remotePlayer.facing=d.f; remotePlayer.anim=d.a; remotePlayer.hp=d.h; remotePlayer.active=true; }
+        if(d.type==='shot') { bullets.push({x:d.x, y:d.y, vx:d.v, owner:'remote'}); playSound('shoot'); }
+        if(d.type==='gren') { grens.push({x:d.x, y:d.y, vx:d.v, vy:-12, timer:70, owner:'remote'}); }
+        if(d.type==='plane') { plane.active = true; plane.x = -500; }
+        if(d.type==='kill') { myKills++; document.getElementById('kill-count').innerText = myKills; checkEnd(); }
+        if(d.type==='map') { selectedMapIndex = d.i; maxPlayers = d.maxP; document.getElementById('max-players-display').innerText = maxPlayers; }
+        if(d.type==='restart') { startReset(); }
+    });
+    document.getElementById('menu-container').style.display = 'none';
+    document.getElementById('controls').style.display = 'flex';
+    document.getElementById('connected-count').innerText = "2";
+    gameActive = true; if(isHost) spawnLoop(); gameLoop();
+}
+
+function spawnLoop() {
+    if(!gameActive) return;
+    if(Math.random() < 0.3) { plane.active = true; plane.x = -500; if(conn) conn.send({type:'plane'}); }
+    items.push({ x: 500 + Math.random()*3000, y: 590 });
+    setTimeout(spawnLoop, 10000);
+}
+
+function checkEnd() {
+    if(myKills >= 4) {
+        gameActive = false;
+        document.getElementById('end-screen').style.display = 'flex';
+        document.getElementById('end-msg').innerText = "VITÓRIA!";
+        document.getElementById('end-stats').innerText = `${myKills} KILLS ALCANÇADAS`;
     }
 }
 
+function resetGame() {
+    if(conn && conn.open) conn.send({type: 'restart'});
+    startReset();
+}
+
 function startReset() {
-    player.hp = 100; myKills = 0; player.x = 4.5; player.y = 4.5; player.z = 0; player.vz = 0; player.isGrounded = true;
-    bullets = []; generateBots3D();
+    myKills = 0; document.getElementById('kill-count').innerText = "0";
+    player.hp = 100; player.grens = 0; document.getElementById('grenade-count').innerText = "0";
+    player.x = 200; player.y = 0; player.vx = 0; player.vy = 0;
+    bullets = []; grens = []; items = []; bombs = [];
+    if(bots.length > 0) generateBots();
     document.getElementById('end-screen').style.display = 'none';
-    document.getElementById('hp-display').innerText = player.hp;
-    document.getElementById('kill-count').innerText = myKills;
-    gameActive = true;
+    if(!gameActive) { gameActive = true; gameLoop(); }
+}
+
+function updateBots() {
+    bots.forEach(bot => {
+        bot.changeDirTimer--;
+        if(bot.changeDirTimer <= 0) {
+            bot.moveDir = Math.random() < 0.5 ? -1 : 1;
+            bot.changeDirTimer = 60 + Math.random() * 120;
+        }
+
+        // Persegue jogador se estiver perto
+        let distToPlayer = player.x - bot.x;
+        if(Math.abs(distToPlayer) < 600) {
+            bot.moveDir = distToPlayer > 0 ? 1 : -1;
+            // Pula obstáculos
+            if(Math.random() < 0.02 && bot.grounded) { bot.vy = -16; bot.grounded = false; }
+            // Atira no jogador
+            if(Date.now() - bot.lastShot > 800) {
+                bot.facing = bot.moveDir;
+                let bx = bot.x + (bot.facing === 1 ? bot.w : 0);
+                bullets.push({x: bx, y: bot.y + 30, vx: bot.facing*15, owner: 'bot'});
+                bot.lastShot = Date.now();
+                playSound('shoot');
+            }
+        }
+
+        bot.vx = bot.moveDir * 4;
+        bot.vy += 0.8; bot.x += bot.vx; bot.y += bot.vy;
+        if(bot.x < 0) bot.x = 0; if(bot.x > 3950) bot.x = 3950;
+
+        bot.grounded = false;
+        maps[selectedMapIndex].rects.forEach(p => {
+            if(bot.x + bot.w > p.x && bot.x < p.x + p.w && bot.vy >= 0 && bot.y + bot.h <= p.y + 10 && bot.y + bot.h + bot.vy >= p.y) {
+                bot.y = p.y - bot.h; bot.vy = 0; bot.grounded = true;
+            }
+        });
+        if(Math.abs(bot.vx) > 0.1) { bot.facing = bot.vx > 0 ? 1 : -1; bot.anim += 0.2; }
+    });
 }
 
 function gameLoop() {
     if(!gameActive) return;
 
-    // 1. Controle de Rotação de Câmera 3D (Analógico Direito)
-    if(Math.abs(input.lookX) > 0.05) {
-        player.angle += input.lookX * player.rotSpeed;
-    }
+    player.vx = input.x * 8;
+    if(input.jump && player.grounded) { player.vy = -18; player.grounded = false; playSound('jump'); }
+    player.vy += 0.8; player.x += player.vx; player.y += player.vy;
+    if(player.x < 0) player.x = 0; if(player.x > 3950) player.x = 3950;
 
-    // 2. Movimentação Direcional (Analógico Esquerdo - Andar e Esquivar em relação ao Olhar)
-    if(Math.abs(input.moveX) > 0.1 || Math.abs(input.moveY) > 0.1) {
-        // Invertido e ajustado para simular o direcional clássico FPS de controle traseiro
-        let moveAngle = player.angle + Math.atan2(input.moveX, -input.moveY);
-        let nextX = player.x + Math.cos(moveAngle) * player.speed;
-        let nextY = player.y + Math.sin(moveAngle) * player.speed;
-
-        // Deslizar suave pelas paredes do Parkour
-        if(getMapTile(nextX, player.y) === 1 || player.z > 0) player.x = nextX;
-        if(getMapTile(player.x, nextY) === 1 || player.z > 0) player.y = nextY;
-    }
-
-    // 3. Gravidade e Física de Altura do Salto (Parkour)
-    if(!player.isGrounded) {
-        player.z += player.vz;
-        player.vz -= 0.02; // Força da Gravidade
-        if(player.z <= 0) {
-            player.z = 0;
-            player.vz = 0;
-            player.isGrounded = true;
+    player.grounded = false;
+    maps[selectedMapIndex].rects.forEach(p => {
+        if(player.x + player.w > p.x && player.x < p.x + p.w && player.vy >= 0 && player.y + player.h <= p.y + 10 && player.y + player.h + player.vy >= p.y) {
+            player.y = p.y - player.h; player.vy = 0; player.grounded = true;
         }
-    }
-
-    // Se o jogador pisar fora das ilhas sólidas e não estiver pulando -> Cai na Lava/Chão Vermelho
-    let currentTile = getMapTile(player.x, player.y);
-    if(currentTile === 0 && player.z === 0) {
-        player.hp -= 1.5; // Dano contínuo na lava de baixo
-        document.getElementById('hp-display').innerText = Math.max(0, Math.floor(player.hp));
-        if(Date.now() % 300 < 30) playSound('hurt');
-        if(player.hp <= 0) {
-            gameActive = false;
-            document.getElementById('end-screen').style.display = 'flex';
-            document.getElementById('end-stats').innerText = `Você caiu do Parkour! Distância percorrida: ${Math.floor(player.x * 10)} metros.`;
-            return;
-        }
-    }
-
-    // Atualiza Distância Percorrida Infinita no Placar
-    document.getElementById('dist-display').innerText = Math.floor(player.x * 10);
-
-    // 4. Mecânica de Disparo Frontal de Balas (Visão de Mira FPS)
-    if(input.shoot && Date.now() % 200 < 40) {
-        bullets.push({
-            x: player.x, y: player.y, z: player.z + 0.2,
-            vx: Math.cos(player.angle) * 0.4, vy: Math.sin(player.angle) * 0.4,
-            owner: 'me', life: 40
-        });
-        playSound('shoot');
-    }
-
-    // Atualização dos Projéteis
-    bullets.forEach((b, i) => {
-        b.x += b.vx; b.y += b.vy; b.life--;
-        if(b.life <= 0) bullets.splice(i, 1);
     });
 
-    // 5. Inteligência dos Bots no Cenário 3D
-    bots.forEach((bot, bi) => {
-        let dx = player.x - bot.x;
-        let dy = player.y - bot.y;
-        let dist = Math.hypot(dx, dy);
+    if(plane.active) {
+        plane.x += 12; if(Math.random() < 0.05) bombs.push({x: plane.x+60, y: 80, vy: 7});
+        if(plane.x > 4000) plane.active = false;
+    }
 
-        // Bots perseguem o jogador pulando plataformas matematicamente
-        if(dist < 15) {
-            bot.angle = Math.atan2(dy, dx);
-            let nX = bot.x + Math.cos(bot.angle) * 0.04;
-            let nY = bot.y + Math.sin(bot.angle) * 0.04;
-            if(getMapTile(nX, nY) === 1) { bot.x = nX; bot.y = nY; }
+    if(bots.length > 0) updateBots();
 
-            // Ataque do Bot
-            if(Date.now() - bot.lastShot > 1200 && dist < 10) {
-                bullets.push({
-                    x: bot.x, y: bot.y, z: 0.2,
-                    vx: Math.cos(bot.angle) * 0.25, vy: Math.sin(bot.angle) * 0.25,
-                    owner: 'bot', life: 50
-                });
-                bot.lastShot = Date.now();
+    remotePlayer.x += (remotePlayer.targetX - remotePlayer.x) * 0.25;
+    remotePlayer.y += (remotePlayer.targetY - remotePlayer.y) * 0.25;
+
+    if(input.shoot && Date.now() % 200 < 30) {
+        const bx = player.x + (player.facing === 1 ? player.w : 0);
+        bullets.push({x: bx, y: player.y + 30, vx: player.facing*20, owner: 'me'});
+        if(conn) conn.send({type: 'shot', x: bx, y: player.y+30, v: player.facing*20}); playSound('shoot');
+    }
+
+    if(input.gren && player.grens > 0 && Date.now() % 500 < 30) {
+        player.grens--; document.getElementById('grenade-count').innerText = player.grens;
+        const gvx = player.facing * 14;
+        grens.push({x: player.x+20, y: player.y, vx: gvx, vy: -12, timer: 70, owner: 'me'});
+        if(conn) conn.send({type: 'gren', x: player.x+20, y: player.y, v: gvx});
+    }
+
+    [...grens, ...bombs].forEach((g, i) => {
+        g.x = (g.x || 0) + (g.vx || 0); g.y += (g.vy || 0); g.vy = (g.vy || 0) + 0.4;
+        maps[selectedMapIndex].rects.forEach(p => {
+            if(g.x > p.x && g.x < p.x+p.w && g.y > p.y && g.y < p.y+20) {
+                playSound('exp');
+                if(Math.hypot(player.x - g.x, player.y - g.y) < 150) player.hp -= 35;
+                bots.forEach(b => { if(Math.hypot(b.x - g.x, b.y - g.y) < 150) b.hp -= 35; });
+                (g.timer !== undefined ? grens : bombs).splice(i,1);
             }
-        }
+        });
+    });
 
-        // Verificação se tiros do jogador atingiram o Bot
-        bullets.forEach((b, li) => {
-            if(b.owner === 'me' && Math.hypot(bot.x - b.x, bot.y - b.y) < 0.4) {
-                bot.hp -= 35;
-                bullets.splice(li, 1);
-                if(bot.hp <= 0) {
-                    myKills++;
-                    document.getElementById('kill-count').innerText = myKills;
-                    // Respawn à frente infinita do jogador para continuar o combate
-                    bot.hp = 100;
-                    bot.x = player.x + 8 + Math.random()*5;
-                    bot.y = player.y + (Math.random()*4 - 2);
+    bullets.forEach((b, i) => {
+        b.x += b.vx;
+        if((b.owner === 'remote' || b.owner === 'bot') && b.x > player.x && b.x < player.x+45 && b.y > player.y && b.y < player.y+65) {
+            player.hp -= 10; bullets.splice(i,1);
+        } else if(b.owner === 'me') {
+            bots.forEach((bot, bi) => {
+                if(b.x > bot.x && b.x < bot.x+45 && b.y > bot.y && b.y < bot.y+65) {
+                    bot.hp -= 25; bullets.splice(i,1);
+                    if(bot.hp <= 0) { myKills++; bot.hp = 100; bot.x = Math.random() * 3000; document.getElementById('kill-count').innerText = myKills; checkEnd(); }
                 }
-            }
-        });
-    });
-
-    // Verificação de Dano sofrido por Balas de Bots
-    bullets.forEach((b, i) => {
-        if(b.owner === 'bot' && Math.hypot(player.x - b.x, player.y - b.y) < 0.4 && Math.abs(b.z - player.z) < 0.5) {
-            player.hp -= 10;
-            document.getElementById('hp-display').innerText = Math.max(0, player.hp);
-            bullets.splice(i, 1);
-            playSound('hurt');
-            if(player.hp <= 0) {
-                gameActive = false;
-                document.getElementById('end-screen').style.display = 'flex';
-                document.getElementById('end-stats').innerText = `Eliminado por Bots no Parkour. Kills: ${myKills}`;
-            }
+            });
         }
+        if(b.x < 0 || b.x > 4000) bullets.splice(i,1);
     });
 
-    render3D();
-    requestAnimationFrame(gameLoop);
+    items.forEach((it, i) => {
+        if(Math.hypot(player.x - it.x, player.y - it.y) < 50) { player.grens += 3; document.getElementById('grenade-count').innerText = player.grens; items.splice(i,1); playSound('pickup'); }
+    });
+
+    if(player.hp <= 0) { player.hp = 100; player.x = 200; player.y = 0; }
+    if(conn && conn.open && Date.now() % 30 < 16) { conn.send({type:'sync', x:player.x, y:player.y, f:player.facing, a:player.anim, h:player.hp}); }
+    
+    draw(); requestAnimationFrame(gameLoop);
 }
 
-// --- MOTOR GRÁFICO 3D POR RAYCASTING PROJETADO (FPS / CÂMERA EM TERCEIRA PESSOA RESTRITA) ---
-function render3D() {
-    // Limpeza de Tela (Céu e Horizonte Escuro)
-    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height/2);
-    ctx.fillStyle = '#020617'; ctx.fillRect(0, canvas.height/2, canvas.width, canvas.height/2);
+function draw() {
+    const map = maps[selectedMapIndex];
+    ctx.fillStyle = map.bg; ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+    ctx.save();
+    let camX = Math.max(0, Math.min(player.x - V_WIDTH/2, 4000 - V_WIDTH));
+    ctx.translate(-camX, 0);
 
-    const fov = Math.PI / 3; // Campo de Visão 3D (Field of View)
-    const numRays = 120; // Resolução das colunas de renderização 3D
-    const rayStep = fov / numRays;
-    const colWidth = canvas.width / numRays;
+    map.rects.forEach(p => { ctx.fillStyle = map.plat; ctx.fillRect(p.x, p.y, p.w, p.h); });
+    if(plane.active) { ctx.fillStyle='#34495e'; ctx.fillRect(plane.x, 40, 120, 30); }
+    items.forEach(it => { ctx.fillStyle='#2ecc71'; ctx.fillRect(it.x, it.y, 30, 30); });
+    bombs.forEach(b => { ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(b.x, b.y, 10, 0, 7); ctx.fill(); });
+    grens.forEach(g => { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(g.x, g.y, 8, 0, 7); ctx.fill(); });
 
-    let zBuffer = [];
+    drawS(player.x, player.y, player.color, player.facing, player.anim, player.hp, "VOCÊ");
+    if(remotePlayer.active) drawS(remotePlayer.x, remotePlayer.y, remotePlayer.color, remotePlayer.facing, remotePlayer.anim, remotePlayer.hp, "RIVAL");
+    
+    bots.forEach(bot => { drawS(bot.x, bot.y, bot.color, bot.facing, bot.anim, bot.hp, bot.id); });
 
-    // Desenho do Terreno de Parkour e das Paredes através de Projeção Tridimensional
-    for (let i = 0; i < numRays; i++) {
-        let rayAngle = (player.angle - fov / 2) + i * rayStep;
-        let distance = 0;
-        let hitWall = false;
-        let hitLava = false;
+    ctx.fillStyle = '#f1c40f'; bullets.forEach(b => ctx.fillRect(b.x, b.y, 18, 5));
+    ctx.restore();
+}
 
-        let cosA = Math.cos(rayAngle);
-        let sinA = Math.sin(rayAngle);
-
-        // Estende o feixe de luz tridimensional para calcular profundidade
-        while (distance < 20 && !hitWall) {
-            distance += 0.15;
-            let checkX = player.x + cosA * distance;
-            let checkY = player.y + sinA * distance;
-
-            if (getMapTile(checkX, checkY) === 0) {
-                hitLava = true; // Espaço vazio mostra a cor de perigo (lava de fundo)
-            } else {
-                hitWall = true; // Encontrou bloco sólido elevado do Parkour
-            }
-        }
-
-        // Correção de efeito olho de peixe na visualização de FPS
-        let correctedDist = distance * Math.cos(rayAngle - player.angle);
-        zBuffer.push(correctedDist);
-
-        // Projeta o tamanho vertical com base na proximidade do jogador
-        let wallHeight = Math.min(canvas.height, (canvas.height / correctedDist));
-
-        // Efeito visual de profundidade (Fading/Névoa)
-        let shade = Math.max(0, 255 - (correctedDist * 14));
-
-        // Ajuste vertical baseado na altura atual do pulo do jogador
-        let cameraYOffset = player.z * (canvas.height / 3);
-
-        if(hitWall) {
-            ctx.fillStyle = `rgb(${shade * 0.2}, ${shade * 0.5}, ${shade * 0.8})`; // Paredes do Parkour azuis
-            ctx.fillRect(i * colWidth, (canvas.height - wallHeight) / 2 + cameraYOffset, colWidth, wallHeight);
-        }
-        
-        // Desenha a esteira/chão de lava vermelha no abismo infinito abaixo das plataformas
-        if(hitLava && correctedDist > 2) {
-            ctx.fillStyle = '#ff3333';
-            ctx.fillRect(i * colWidth, (canvas.height / 2) + (wallHeight / 2) + cameraYOffset, colWidth, canvas.height);
-        }
-    }
-
-    // Renderização dos Elementos Tridimensionais (Sprites dos Bots) ordenados por distância
-    bots.forEach(bot => {
-        let dx = bot.x - player.x;
-        let dy = bot.y - player.y;
-
-        // Ângulo relativo à direção do jogador
-        let botAngle = Math.atan2(dy, dx) - player.angle;
-        while (botAngle < -Math.PI) botAngle += Math.PI * 2;
-        while (botAngle > Math.PI) botAngle -= Math.PI * 2;
-
-        // Se estiver dentro da tela do jogador
-        if (Math.abs(botAngle) < fov) {
-            let dist = Math.hypot(dx, dy);
-            if (dist > 0.2 && dist < 20) {
-                let screenX = (canvas.width / 2) + (Math.tan(botAngle) * (canvas.width / 2));
-                let spriteSize = Math.min(canvas.height, (canvas.height / dist));
-
-                let cameraYOffset = player.z * (canvas.height / 3);
-                let spriteY = (canvas.height - spriteSize) / 2 + cameraYOffset;
-
-                // Renderiza Cabeça Bonita com Cabelo e Olhos Simplificados no Sprite 3D
-                ctx.save();
-                ctx.translate(screenX, spriteY + spriteSize / 2);
-
-                // Corpo do Inimigo
-                ctx.fillStyle = bot.color;
-                ctx.beginPath(); ctx.arc(0, 0, spriteSize / 4, 0, Math.PI * 2); ctx.fill();
-
-                // Cabeça e Cabelo do Bot
-                ctx.fillStyle = '#ffe0bd';
-                ctx.beginPath(); ctx.arc(0, -spriteSize/4, spriteSize/6, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#34495e';
-                ctx.fillRect(-spriteSize/8, -spriteSize/2.5, spriteSize/4, spriteSize/8); // Cabelo superior
-
-                // Pequena barra de vida sobre o Bot 3D
-                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-20, -spriteSize/1.8, 40, 5);
-                ctx.fillStyle = '#2ecc71'; ctx.fillRect(-20, -spriteSize/1.8, 40 * (bot.hp/100), 5);
-
-                ctx.restore();
-            }
-        }
-    });
-
-    // Renderização de Balas na Visão 3D
-    bullets.forEach(b => {
-        let dx = b.x - player.x;
-        let dy = b.y - player.y;
-        let bAngle = Math.atan2(dy, dx) - player.angle;
-        if(Math.abs(bAngle) < fov) {
-            let dist = Math.hypot(dx, dy);
-            let screenX = (canvas.width / 2) + (Math.tan(bAngle) * (canvas.width / 2));
-            let bSize = 150 / dist;
-            let cameraYOffset = player.z * (canvas.height / 3);
-            ctx.fillStyle = '#f1c40f';
-            ctx.beginPath(); ctx.arc(screenX, (canvas.height/2) - (b.z * canvas.height/4) + cameraYOffset, Math.max(2, bSize), 0, 7); ctx.fill();
-        }
-    });
+function drawS(x, y, color, f, a, h, name) {
+    ctx.save();
+    ctx.fillStyle = 'white'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.fillText(name, x + 22, y - 60);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y - 52, 45, 8);
+    ctx.fillStyle = h > 30 ? '#2ecc71' : '#ff4757'; ctx.fillRect(x, y - 52, 45 * (h / 100), 8);
+    ctx.translate(x + 22, y + 32); ctx.scale(f, 1);
+    const leg = Math.sin(a) * 14; ctx.strokeStyle = '#000'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(-leg, 32); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(leg, 32); ctx.stroke();
+    ctx.fillStyle = color; ctx.fillRect(-18, -25, 36, 50);
+    ctx.fillStyle = '#ffe0bd'; ctx.fillRect(-12, -48, 24, 24);
+    ctx.restore();
 }
 </script>
 </body>
