@@ -3,51 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elite Airborne - Top Down Edition</title>
+    <title>Elite Airborne - 3D Endless Parkour</title>
     <style>
-        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; overflow: hidden; background: #1e272e; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; background: #000; }
+        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; background: #111; width: 100vw; height: 100vh; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
         .interactive { pointer-events: auto; }
         
         #menu-container, #end-screen { 
             position: absolute; width: 100%; height: 100%; background: #1e272e; 
             z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            overflow-y: auto; padding: 20px 0; box-sizing: border-box;
+            overflow-y: auto; padding: 20px 0;
         }
         #end-screen { background: rgba(0,0,0,0.9); color: white; display: none; pointer-events: auto; }
 
         .panel { background: #2f3640; padding: 12px; border-radius: 15px; border: 2px solid #3498db; text-align: center; color: white; margin-bottom: 10px; width: 85%; max-width: 350px; }
         .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; color: #fff; cursor: pointer; margin: 5px; pointer-events: auto; }
         .btn-p1 { background: #3498db; width: 45%; }
-        .btn-p2 { background: #e67e22; width: 45%; }
         .btn-menu { background: #7f8c8d; width: 45%; }
-        .btn-map { background: #7f8c8d; flex: 1; margin: 2px; font-size: 10px; }
-        .btn-map.selected { background: #27ae60; border: 2px solid #fff; }
 
         .players-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 8px; }
         .btn-player-count { background: #7f8c8d; padding: 8px 0; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
         .btn-player-count.selected { background: #9b59b6; border: 2px solid #fff; }
 
-        #controls { position: absolute; bottom: 30px; width: 100%; display: none; justify-content: space-between; padding: 0 40px; box-sizing: border-box; align-items: flex-end; }
-        .control-btn { width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid rgba(255,255,255,0.4); margin: 5px; }
+        #controls { position: absolute; bottom: 30px; width: 100%; display: none; justify-content: space-between; padding: 0 30px; box-sizing: border-box; align-items: flex-end; }
+        .control-btn { width: 75px; height: 75px; border-radius: 50%; background: rgba(231,76,60,0.6); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid rgba(255,255,255,0.4); margin-bottom: 10px; font-size: 14px; }
         
-        #joystick { width: 140px; height: 140px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; background: rgba(255,255,255,0.1); pointer-events: auto; }
-        #knob { width: 60px; height: 60px; background: #fff; border-radius: 50%; position: absolute; top: 40px; left: 40px; pointer-events: none; }
-        #btn-group-right { display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
+        .joy-container { width: 120px; height: 120px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; background: rgba(255,255,255,0.1); pointer-events: auto; }
+        .joy-knob { width: 50px; height: 50px; background: #fff; border-radius: 50%; position: absolute; top: 31px; left: 31px; pointer-events: none; }
+        
         #stats { position: absolute; top: 15px; left: 15px; color: white; background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 20px; font-size: 14px; border: 1px solid #3498db; }
-        #room-code-display { font-size: 22px; color: #f1c40f; font-weight: bold; margin-bottom: 15px; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 20px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
 <div id="menu-container">
-    <h1 style="color: white; letter-spacing: 2px; margin: 10px 0;">ELITE AIRBORNE</h1>
-    <div id="room-code-display">CÓDIGO: <span id="code-number">----</span></div>
+    <h1 style="color: white; letter-spacing: 2px; margin: 10px 0; text-align: center;">ELITE AIRBORNE 3D</h1>
+    <p style="color: #616e7c; margin-top: 0;">INFINITE PARKOUR FPS</p>
     
     <div class="panel">
-        <h4>MÁXIMO DE JOGADORES</h4>
+        <h4>QUANTIDADE DE BOTS (MAX)</h4>
         <div class="players-grid">
             <div id="p-count-1" class="btn-player-count interactive">1</div>
             <div id="p-count-2" class="btn-player-count interactive selected">2</div>
@@ -63,25 +60,13 @@
     </div>
 
     <div class="panel">
-        <h4>SELECIONAR ARENA</h4>
-        <div style="display: flex;">
-            <div id="map-0" class="btn btn-map selected">URBANA</div>
-            <div id="map-1" class="btn btn-map">DESERTO</div>
-            <div id="map-2" class="btn btn-map">FLORESTA</div>
-        </div>
+        <button id="solo-btn" class="btn btn-p1" style="width: 95%; background: #2ecc71; font-size: 16px;">INICIAR JOGO 3D</button>
     </div>
-    <div class="panel">
-        <div style="display: flex; justify-content: space-between;">
-            <div id="p1-btn" class="btn btn-p1">CRIAR</div>
-            <div id="p2-btn" class="btn btn-p2">ENTRAR</div>
-        </div>
-        <button id="solo-btn" class="btn btn-p1" style="width: 95%; background: #2ecc71; margin-top: 10px;">JOGAR SOLO (BOTS)</button>
-    </div>
-    <div id="status-display" style="color: #bdc3c7;">Pronto para iniciar</div>
+    <div style="color: #bbb; font-size: 12px; text-align: center; max-width: 300px;">Use o analógico Esquerdo para andar e o Direito para rodar a câmera. Não caia no chão vermelho!</div>
 </div>
 
 <div id="end-screen">
-    <h1 id="end-msg">VITÓRIA!</h1>
+    <h1 id="end-msg">FIM DE JOGO</h1>
     <p id="end-stats"></p>
     <div style="display: flex; width: 100%; justify-content: center; gap: 10px; pointer-events: auto;">
         <button class="btn btn-p1" id="final-retry-btn">REJOGAR</button>
@@ -89,452 +74,417 @@
     </div>
 </div>
 
+<div id="crosshair">+</div>
+
 <div id="ui-layer">
-    <div id="stats">KILLS: <span id="kill-count">0</span>/4 | JOGADORES: <span id="connected-count">1</span>/<span id="max-players-display">2</span> | G: <span id="grenade-count">0</span></div>
+    <div id="stats">HP: <span id="hp-display">100</span> | KILLS: <span id="kill-count">0</span> | DISTÂNCIA: <span id="dist-display">0</span>m</div>
     <div id="controls">
-        <div id="joystick"><div id="knob"></div></div>
-        <div id="btn-group-right" class="interactive">
-            <div id="btn-grenade" class="control-btn" style="background: rgba(241,196,15,0.4); margin-bottom: 10px;">GRANADA</div>
-            <div id="btn-shoot" class="control-btn" style="background: rgba(231,76,60,0.5); width: 100px; height: 100px; font-size: 18px;">FOGO</div>
+        <div id="joystick-left" class="joy-container"><div id="knob-left" class="joy-knob"></div></div>
+        
+        <div style="display: flex; flex-direction: column; align-items: center; pointer-events: auto;">
+            <div id="btn-jump" class="control-btn" style="background: rgba(46,204,113,0.7);">PULAR</div>
+            <div id="btn-shoot" class="control-btn" style="background: rgba(231,76,60,0.8); width: 85px; height: 85px;">FOGO</div>
         </div>
+
+        <div id="joystick-right" class="joy-container"><div id="knob-right" class="joy-knob"></div></div>
     </div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
 
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
+// --- ÁUDIO ENGINE ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
-    if(type==='shoot'){ osc.type='square'; osc.frequency.setValueAtTime(180,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.08); gain.gain.setValueAtTime(0.1,now); }
-    else if(type==='exp'){ osc.type='sawtooth'; osc.frequency.setValueAtTime(90,now); gain.gain.setValueAtTime(0.3,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.4); }
-    else if(type==='pickup'){ osc.type='triangle'; osc.frequency.setValueAtTime(600,now); gain.gain.setValueAtTime(0.1,now); }
-    osc.start(); osc.stop(now + 0.5);
+    if(type==='shoot'){ osc.type='square'; osc.frequency.setValueAtTime(200,now); osc.frequency.exponentialRampToValueAtTime(0.01,now+0.05); gain.gain.setValueAtTime(0.08,now); }
+    else if(type==='jump'){ osc.type='sine'; osc.frequency.setValueAtTime(300,now); osc.frequency.exponentialRampToValueAtTime(500,now+0.1); gain.gain.setValueAtTime(0.1,now); }
+    else if(type==='hurt'){ osc.type='sawtooth'; osc.frequency.setValueAtTime(120,now); gain.gain.setValueAtTime(0.2,now); }
+    osc.start(); osc.stop(now + 0.3);
 }
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const V_WIDTH = 1280, V_HEIGHT = 720;
-const MAP_SIZE = 2500; // Tamanho quadrado do mapa livre top-down
 
+let gameActive = false, myKills = 0, maxPlayers = 2;
+let bullets = [], bots = [], items = [];
+
+// Mecânicas do Jogador (Posicionamento e Física de Pulo para Parkour)
+const player = {
+    x: 4.5, y: 4.5, z: 0, // z representa a altura do pulo
+    angle: 0, speed: 0.1, rotSpeed: 0.04,
+    hp: 100, vz: 0, isGrounded: true, distanceTravelled: 0
+};
+
+// Inputs analógicos duplos
+const input = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, shoot: false, joyLeftId: null, joyRightId: null };
+
+// --- MAPA INFINITO GERADO VIA ALGORITMO/FUNÇÃO ---
+// Retorna 1 para bloco de Parkour estável, 0 para Vazio (Chão de Lava)
+function getMapTile(x, y) {
+    let ix = Math.floor(x);
+    let iy = Math.floor(y);
+    if (ix < 0 || iy < 0) return 0;
+    if (ix >= 3 && ix <= 6 && iy >= 3 && iy <= 6) return 1; // Plataforma inicial estável de spawn
+
+    // Criação matemática de ilhas/plataformas intercaladas infinitas para o Parkour
+    let pattern = Math.sin(ix * 0.8) + Math.cos(iy * 0.8);
+    if (pattern > 0.4) {
+        return 1; // Plataforma sólida flutuante
+    }
+    return 0; // Vazio/Espaço
+}
+
+// Interfaces e Responsividade
 function resize() {
-    const scale = Math.min(window.innerWidth / V_WIDTH, window.innerHeight / V_HEIGHT);
-    canvas.width = V_WIDTH * scale; canvas.height = V_HEIGHT * scale;
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resize); resize();
 
-let peer, conn, isHost = false, gameActive = false, myKills = 0, maxPlayers = 2, selectedMapIndex = 0;
-let bots = [], bullets = [], grens = [], items = [];
-
-// Personagem com ângulo 'angle' de direção e pernas animadas
-const player = { x: 300, y: 300, vx: 0, vy: 0, r: 25, angle: 0, anim: 0, color: '#3498db', hairColor: '#2c3e50', hp: 100, grens: 3, speed: 6 };
-const remotePlayer = { x: 600, y: 600, targetX: 600, targetY: 600, r: 25, angle: 0, anim: 0, color: '#e67e22', hairColor: '#d35400', hp: 100, active: false };
-
-const arenas = [
-    { bg: '#34495e', wall: '#2c3e50', blocks: [{x:400, y:300, w:200, h:200}, {x:1200, y:800, w:300, h:150}, {x:800, y:1500, w:150, h:400}] },
-    { bg: '#f1c40f', wall: '#e67e22', blocks: [{x:500, y:500, w:300, h:100}, {x:1500, y:400, w:200, h:300}, {x:900, y:1200, w:250, h:250}] },
-    { bg: '#2ecc71', wall: '#27ae60', blocks: [{x:600, y:200, w:150, h:300}, {x:1100, y:1100, w:400, h:100}, {x:400, y:1400, w:300, h:200}] }
-];
-
-const input = { x: 0, y: 0, shoot: false, gren: false, joyId: null };
-
+// Tratamento de Toques (Multi-touch para os dois analógicos + botões)
 function handleTouch(e) {
-    if (e.target.id === 'final-retry-btn' || e.target.id === 'final-menu-btn') return;
     e.preventDefault();
     const touches = e.touches;
-    input.shoot = input.gren = false;
-    let joyActive = false;
+    input.shoot = false;
+
+    let leftActive = false;
+    let rightActive = false;
+
+    const rectLeft = document.getElementById('joystick-left').getBoundingClientRect();
+    const rectRight = document.getElementById('joystick-right').getBoundingClientRect();
+
+    const cxLeft = rectLeft.left + rectLeft.width / 2;
+    const cyLeft = rectLeft.top + rectLeft.height / 2;
+    const cxRight = rectRight.left + rectRight.width / 2;
+    const cyRight = rectRight.top + rectRight.height / 2;
 
     for (let t of touches) {
         const el = document.elementFromPoint(t.clientX, t.clientY);
-        if ((el && (el.id === 'joystick' || el.id === 'knob')) || t.identifier === input.joyId) {
-            if (input.joyId === null) input.joyId = t.identifier;
-            const rect = document.getElementById('joystick').getBoundingClientRect();
-            const dx = t.clientX - (rect.left + rect.width / 2);
-            const dy = t.clientY - (rect.top + rect.height / 2);
-            const dist = Math.hypot(dx, dy);
-            
-            if(dist > 5) {
-                input.x = dx / dist;
-                input.y = dy / dist;
-                player.angle = Math.atan2(dy, dx);
-            }
-            const kf = Math.min(40, dist);
-            document.getElementById('knob').style.transform = `translate(${input.x * kf}px, ${input.y * kf}px)`;
-            joyActive = true; continue;
+
+        // Analógico Esquerdo - Movimentação do Corpo
+        if (t.clientX < window.innerWidth / 2 && (t.identifier === input.joyLeftId || (el && (el.id==='joystick-left' || el.id==='knob-left')))) {
+            if(input.joyLeftId === null) input.joyLeftId = t.identifier;
+            let dx = t.clientX - cxLeft;
+            let dy = t.clientY - cyLeft;
+            let dist = Math.hypot(dx, dy) || 1;
+            input.moveX = dx / dist;
+            input.moveY = dy / dist;
+            let kf = Math.min(30, dist);
+            document.getElementById('knob-left').style.transform = `translate(${input.moveX * kf}px, ${input.moveY * kf}px)`;
+            leftActive = true;
+            continue;
         }
-        if (!el) continue;
-        if (!gameActive) {
-            if (el.id === 'p1-btn') createRoom();
-            if (el.id === 'p2-btn') joinRoom();
-            if (el.id === 'solo-btn') startSoloGame();
-            if (el.id.includes('map-')) {
-                selectedMapIndex = parseInt(el.id.split('-')[1]);
-                document.querySelectorAll('.btn-map').forEach((b, i) => b.classList.toggle('selected', i === selectedMapIndex));
-            }
-            if (el.id.includes('p-count-')) {
+
+        // Analógico Direito - Rotação de Olhar 3D / FPS
+        if (t.clientX >= window.innerWidth / 2 && (t.identifier === input.joyRightId || (el && (el.id==='joystick-right' || el.id==='knob-right')))) {
+            if(input.joyRightId === null) input.joyRightId = t.identifier;
+            let dx = t.clientX - cxRight;
+            let dy = t.clientY - cyRight;
+            let dist = Math.hypot(dx, dy) || 1;
+            input.lookX = dx / dist * (dist / 30);
+            rightActive = true;
+            document.getElementById('knob-right').style.transform = `translate(${dx/dist * Math.min(30, dist)}px, ${dy/dist * Math.min(30, dist)}px)`;
+            continue;
+        }
+
+        if(!el) continue;
+        if(!gameActive) {
+            if(el.id === 'solo-btn') start3DGame();
+            if(el.id.includes('p-count-')) {
                 maxPlayers = parseInt(el.id.split('-')[2]);
                 document.querySelectorAll('.btn-player-count').forEach((b, i) => b.classList.toggle('selected', (i + 1) === maxPlayers));
-                document.getElementById('max-players-display').innerText = maxPlayers;
             }
+        } else {
+            if(el.id === 'btn-jump' && player.isGrounded) { player.vz = 0.25; player.isGrounded = false; playSound('jump'); }
+            if(el.id === 'btn-shoot') input.shoot = true;
         }
-        if (el.id === 'btn-shoot') input.shoot = true;
-        if (el.id === 'btn-grenade') input.gren = true;
     }
-    if (!joyActive) { input.x = 0; input.y = 0; input.joyId = null; document.getElementById('knob').style.transform = 'translate(0px, 0px)'; }
+
+    if (!leftActive) { input.moveX = 0; input.moveY = 0; input.joyLeftId = null; document.getElementById('knob-left').style.transform = 'translate(0px, 0px)'; }
+    if (!rightActive) { input.lookX = 0; input.joyRightId = null; document.getElementById('knob-right').style.transform = 'translate(0px, 0px)'; }
 }
 
 document.addEventListener('touchstart', handleTouch, {passive: false});
 document.addEventListener('touchmove', handleTouch, {passive: false});
 document.addEventListener('touchend', handleTouch, {passive: false});
-document.getElementById('final-retry-btn').addEventListener('click', resetGame);
+document.getElementById('final-retry-btn').addEventListener('click', () => { startReset(); });
 document.getElementById('final-menu-btn').addEventListener('click', () => location.reload());
 
-function createRoom() {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    isHost = true; peer = new Peer("ELITE-"+code);
-    peer.on('open', () => {
-        document.getElementById('code-number').innerText = code;
-        document.getElementById('room-code-display').style.display = 'block';
-        document.getElementById('status-display').innerText = "Aguardando rivais...";
-    });
-    peer.on('connection', c => { conn = c; conn.on('open', () => { conn.send({type:'map', i:selectedMapIndex, maxP: maxPlayers}); setupNetwork(); })});
-}
-
-function joinRoom() {
-    const code = prompt("Código da Sala:"); if(!code) return;
-    isHost = false; peer = new Peer();
-    peer.on('open', () => { const c = peer.connect("ELITE-"+code); c.on('open', () => { conn = c; setupNetwork(); }); });
-}
-
-function startSoloGame() {
-    isHost = true;
+function start3DGame() {
     document.getElementById('menu-container').style.display = 'none';
     document.getElementById('controls').style.display = 'flex';
-    generateBots();
+    document.getElementById('crosshair').style.display = 'block';
     gameActive = true;
-    spawnLoop();
+    generateBots3D();
     gameLoop();
 }
 
-function generateBots() {
+function generateBots3D() {
     bots = [];
-    let neededBots = maxPlayers - 1;
-    const botColors = ['#e74c3c', '#9b59b6', '#1abc9c', '#f1c40f', '#e67e22', '#ff4757', '#2ed573', '#1e90ff', '#ffffff'];
-    const hairColors = ['#f39c12', '#2c3e50', '#7f8c8d', '#d35400', '#6f1e51', '#000000', '#833471'];
-    for(let i = 0; i < neededBots; i++) {
+    for(let i=0; i<maxPlayers-1; i++) {
         bots.push({
-            id: 'BOT-' + (i+1),
-            x: 400 + Math.random() * 1500, y: 400 + Math.random() * 1500, vx: 0, vy: 0, r: 25,
-            angle: Math.random() * Math.PI * 2, anim: 0, 
-            color: botColors[i % botColors.length], 
-            hairColor: hairColors[i % hairColors.length],
-            hp: 100, lastShot: 0, changeDirTimer: 0, moveDirX: 1, moveDirY: 0
+            x: 5.5 + Math.random()*4, y: 5.5 + Math.random()*4,
+            hp: 100, color: i === 0 ? '#e67e22' : '#e74c3c',
+            lastShot: 0, angle: Math.random()*6
         });
     }
-    document.getElementById('connected-count').innerText = maxPlayers;
-}
-
-function setupNetwork() {
-    conn.on('data', d => {
-        if(d.type==='sync') { remotePlayer.targetX=d.x; remotePlayer.targetY=d.y; remotePlayer.angle=d.ang; remotePlayer.anim=d.a; remotePlayer.hp=d.h; remotePlayer.active=true; }
-        if(d.type==='shot') { bullets.push({x:d.x, y:d.y, vx:d.vx, vy:d.vy, owner:'remote'}); playSound('shoot'); }
-        if(d.type==='gren') { grens.push({x:d.x, y:d.y, vx:d.vx, vy:d.vy, timer:60, owner:'remote'}); }
-        if(d.type==='kill') { myKills++; document.getElementById('kill-count').innerText = myKills; checkEnd(); }
-        if(d.type==='map') { selectedMapIndex = d.i; maxPlayers = d.maxP; document.getElementById('max-players-display').innerText = maxPlayers; }
-        if(d.type==='restart') { startReset(); }
-    });
-    document.getElementById('menu-container').style.display = 'none';
-    document.getElementById('controls').style.display = 'flex';
-    document.getElementById('connected-count').innerText = "2";
-    gameActive = true; if(isHost) spawnLoop(); gameLoop();
-}
-
-function spawnLoop() {
-    if(!gameActive) return;
-    items.push({ x: 200 + Math.random()*(MAP_SIZE-400), y: 200 + Math.random()*(MAP_SIZE-400) });
-    setTimeout(spawnLoop, 7000);
-}
-
-function checkEnd() {
-    if(myKills >= 4) {
-        gameActive = false;
-        document.getElementById('end-screen').style.display = 'flex';
-        document.getElementById('end-msg').innerText = "VITÓRIA!";
-        document.getElementById('end-stats').innerText = `${myKills} ELIMINAÇÕES ALCANÇADAS`;
-    }
-}
-
-function resetGame() {
-    if(conn && conn.open) conn.send({type: 'restart'});
-    startReset();
 }
 
 function startReset() {
-    myKills = 0; document.getElementById('kill-count').innerText = "0";
-    player.hp = 100; player.grens = 3; document.getElementById('grenade-count').innerText = player.grens;
-    player.x = 300; player.y = 300;
-    bullets = []; grens = []; items = [];
-    if(bots.length > 0) generateBots();
+    player.hp = 100; myKills = 0; player.x = 4.5; player.y = 4.5; player.z = 0; player.vz = 0; player.isGrounded = true;
+    bullets = []; generateBots3D();
     document.getElementById('end-screen').style.display = 'none';
-    if(!gameActive) { gameActive = true; gameLoop(); }
-}
-
-function checkWallCollision(entity) {
-    if(entity.x - entity.r < 0) entity.x = entity.r;
-    if(entity.x + entity.r > MAP_SIZE) entity.x = MAP_SIZE - entity.r;
-    if(entity.y - entity.r < 0) entity.y = entity.r;
-    if(entity.y + entity.r > MAP_SIZE) entity.y = MAP_SIZE - entity.r;
-
-    arenas[selectedMapIndex].blocks.forEach(b => {
-        if (entity.x + entity.r > b.x && entity.x - entity.r < b.x + b.w &&
-            entity.y + entity.r > b.y && entity.y - entity.r < b.y + b.h) {
-            let cx = entity.x - Math.max(b.x, Math.min(entity.x, b.x + b.w));
-            let cy = entity.y - Math.max(b.y, Math.min(entity.y, b.y + b.h));
-            if (Math.abs(cx) > Math.abs(cy)) {
-                entity.x += cx > 0 ? entity.r + cx : -entity.r + cx;
-            } else {
-                entity.y += cy > 0 ? entity.r + cy : -entity.r + cy;
-            }
-        }
-    });
-}
-
-function updateBots() {
-    bots.forEach(bot => {
-        bot.changeDirTimer--;
-        if(bot.changeDirTimer <= 0) {
-            let ang = Math.random() * Math.PI * 2;
-            bot.moveDirX = Math.cos(ang);
-            bot.moveDirY = Math.sin(ang);
-            bot.changeDirTimer = 80 + Math.random() * 120;
-        }
-
-        let distToPlayer = Math.hypot(player.x - bot.x, player.y - bot.y);
-        if(distToPlayer < 500) {
-            bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
-            bot.moveDirX = Math.cos(bot.angle);
-            bot.moveDirY = Math.sin(bot.angle);
-            
-            if(Date.now() - bot.lastShot > 1000) {
-                let bx = bot.x + Math.cos(bot.angle) * bot.r;
-                let by = bot.y + Math.sin(bot.angle) * bot.r;
-                bullets.push({x: bx, y: by, vx: Math.cos(bot.angle)*14, vy: Math.sin(bot.angle)*14, owner: 'bot'});
-                bot.lastShot = Date.now();
-                playSound('shoot');
-            }
-        } else {
-            bot.angle = Math.atan2(bot.moveDirY, bot.moveDirX);
-        }
-
-        bot.x += bot.moveDirX * 3.5;
-        bot.y += bot.moveDirY * 3.5;
-        bot.anim += 0.2;
-        checkWallCollision(bot);
-    });
+    document.getElementById('hp-display').innerText = player.hp;
+    document.getElementById('kill-count').innerText = myKills;
+    gameActive = true;
 }
 
 function gameLoop() {
     if(!gameActive) return;
 
-    player.vx = input.x * player.speed;
-    player.vy = input.y * player.speed;
-    player.x += player.vx;
-    player.y += player.vy;
-    
-    if(Math.hypot(player.vx, player.vy) > 0.5) {
-        player.anim += 0.25;
+    // 1. Controle de Rotação de Câmera 3D (Analógico Direito)
+    if(Math.abs(input.lookX) > 0.05) {
+        player.angle += input.lookX * player.rotSpeed;
     }
 
-    checkWallCollision(player);
-    if(bots.length > 0) updateBots();
+    // 2. Movimentação Direcional (Analógico Esquerdo - Andar e Esquivar em relação ao Olhar)
+    if(Math.abs(input.moveX) > 0.1 || Math.abs(input.moveY) > 0.1) {
+        // Invertido e ajustado para simular o direcional clássico FPS de controle traseiro
+        let moveAngle = player.angle + Math.atan2(input.moveX, -input.moveY);
+        let nextX = player.x + Math.cos(moveAngle) * player.speed;
+        let nextY = player.y + Math.sin(moveAngle) * player.speed;
 
-    remotePlayer.x += (remotePlayer.targetX - remotePlayer.x) * 0.25;
-    remotePlayer.y += (remotePlayer.targetY - remotePlayer.y) * 0.25;
+        // Deslizar suave pelas paredes do Parkour
+        if(getMapTile(nextX, player.y) === 1 || player.z > 0) player.x = nextX;
+        if(getMapTile(player.x, nextY) === 1 || player.z > 0) player.y = nextY;
+    }
 
-    // Atirar em qualquer direção baseando-se no ângulo do jogador
-    if(input.shoot && Date.now() % 180 < 30) {
-        let bx = player.x + Math.cos(player.angle) * player.r;
-        let by = player.y + Math.sin(player.angle) * player.r;
-        let bvx = Math.cos(player.angle) * 18;
-        let bvy = Math.sin(player.angle) * 18;
-        bullets.push({x: bx, y: by, vx: bvx, vy: bvy, owner: 'me'});
-        if(conn) conn.send({type: 'shot', x: bx, y: by, vx: bvx, vy: bvy}); 
+    // 3. Gravidade e Física de Altura do Salto (Parkour)
+    if(!player.isGrounded) {
+        player.z += player.vz;
+        player.vz -= 0.02; // Força da Gravidade
+        if(player.z <= 0) {
+            player.z = 0;
+            player.vz = 0;
+            player.isGrounded = true;
+        }
+    }
+
+    // Se o jogador pisar fora das ilhas sólidas e não estiver pulando -> Cai na Lava/Chão Vermelho
+    let currentTile = getMapTile(player.x, player.y);
+    if(currentTile === 0 && player.z === 0) {
+        player.hp -= 1.5; // Dano contínuo na lava de baixo
+        document.getElementById('hp-display').innerText = Math.max(0, Math.floor(player.hp));
+        if(Date.now() % 300 < 30) playSound('hurt');
+        if(player.hp <= 0) {
+            gameActive = false;
+            document.getElementById('end-screen').style.display = 'flex';
+            document.getElementById('end-stats').innerText = `Você caiu do Parkour! Distância percorrida: ${Math.floor(player.x * 10)} metros.`;
+            return;
+        }
+    }
+
+    // Atualiza Distância Percorrida Infinita no Placar
+    document.getElementById('dist-display').innerText = Math.floor(player.x * 10);
+
+    // 4. Mecânica de Disparo Frontal de Balas (Visão de Mira FPS)
+    if(input.shoot && Date.now() % 200 < 40) {
+        bullets.push({
+            x: player.x, y: player.y, z: player.z + 0.2,
+            vx: Math.cos(player.angle) * 0.4, vy: Math.sin(player.angle) * 0.4,
+            owner: 'me', life: 40
+        });
         playSound('shoot');
     }
 
-    if(input.gren && player.grens > 0 && Date.now() % 600 < 30) {
-        player.grens--; document.getElementById('grenade-count').innerText = player.grens;
-        let gx = player.x + Math.cos(player.angle) * player.r;
-        let gy = player.y + Math.sin(player.angle) * player.r;
-        let gvx = Math.cos(player.angle) * 12;
-        let gvy = Math.sin(player.angle) * 12;
-        grens.push({x: gx, y: gy, vx: gvx, vy: gvy, timer: 60, owner: 'me'});
-        if(conn) conn.send({type: 'gren', x: gx, y: gy, vx: gvx, vy: gvy});
-    }
-
-    grens.forEach((g, i) => {
-        g.x += g.vx; g.y += g.vy; g.vx *= 0.95; g.vy *= 0.95; // Fricção
-        g.timer--;
-        if(g.timer <= 0) {
-            playSound('exp');
-            if(Math.hypot(player.x - g.x, player.y - g.y) < 130) player.hp -= 40;
-            bots.forEach(b => { if(Math.hypot(b.x - g.x, b.y - g.y) < 130) b.hp -= 40; });
-            grens.splice(i,1);
-        }
+    // Atualização dos Projéteis
+    bullets.forEach((b, i) => {
+        b.x += b.vx; b.y += b.vy; b.life--;
+        if(b.life <= 0) bullets.splice(i, 1);
     });
 
-    bullets.forEach((b, i) => {
-        b.x += b.vx; b.y += b.vy;
-        
-        // Colisão com blocos limpa as balas
-        arenas[selectedMapIndex].blocks.forEach(wall => {
-            if(b.x > wall.x && b.x < wall.x + wall.w && b.y > wall.y && b.y < wall.y + wall.h) {
-                bullets.splice(i,1);
+    // 5. Inteligência dos Bots no Cenário 3D
+    bots.forEach((bot, bi) => {
+        let dx = player.x - bot.x;
+        let dy = player.y - bot.y;
+        let dist = Math.hypot(dx, dy);
+
+        // Bots perseguem o jogador pulando plataformas matematicamente
+        if(dist < 15) {
+            bot.angle = Math.atan2(dy, dx);
+            let nX = bot.x + Math.cos(bot.angle) * 0.04;
+            let nY = bot.y + Math.sin(bot.angle) * 0.04;
+            if(getMapTile(nX, nY) === 1) { bot.x = nX; bot.y = nY; }
+
+            // Ataque do Bot
+            if(Date.now() - bot.lastShot > 1200 && dist < 10) {
+                bullets.push({
+                    x: bot.x, y: bot.y, z: 0.2,
+                    vx: Math.cos(bot.angle) * 0.25, vy: Math.sin(bot.angle) * 0.25,
+                    owner: 'bot', life: 50
+                });
+                bot.lastShot = Date.now();
+            }
+        }
+
+        // Verificação se tiros do jogador atingiram o Bot
+        bullets.forEach((b, li) => {
+            if(b.owner === 'me' && Math.hypot(bot.x - b.x, bot.y - b.y) < 0.4) {
+                bot.hp -= 35;
+                bullets.splice(li, 1);
+                if(bot.hp <= 0) {
+                    myKills++;
+                    document.getElementById('kill-count').innerText = myKills;
+                    // Respawn à frente infinita do jogador para continuar o combate
+                    bot.hp = 100;
+                    bot.x = player.x + 8 + Math.random()*5;
+                    bot.y = player.y + (Math.random()*4 - 2);
+                }
             }
         });
+    });
 
-        if((b.owner === 'remote' || b.owner === 'bot') && Math.hypot(player.x - b.x, player.y - b.y) < player.r) {
-            player.hp -= 12; bullets.splice(i,1);
-        } else if(b.owner === 'me') {
-            bots.forEach((bot, bi) => {
-                if(Math.hypot(bot.x - b.x, bot.y - b.y) < bot.r) {
-                    bot.hp -= 25; bullets.splice(i,1);
-                    if(bot.hp <= 0) { myKills++; bot.hp = 100; bot.x = 200 + Math.random() * (MAP_SIZE - 400); bot.y = 200 + Math.random() * (MAP_SIZE - 400); document.getElementById('kill-count').innerText = myKills; checkEnd(); }
-                }
-            });
+    // Verificação de Dano sofrido por Balas de Bots
+    bullets.forEach((b, i) => {
+        if(b.owner === 'bot' && Math.hypot(player.x - b.x, player.y - b.y) < 0.4 && Math.abs(b.z - player.z) < 0.5) {
+            player.hp -= 10;
+            document.getElementById('hp-display').innerText = Math.max(0, player.hp);
+            bullets.splice(i, 1);
+            playSound('hurt');
+            if(player.hp <= 0) {
+                gameActive = false;
+                document.getElementById('end-screen').style.display = 'flex';
+                document.getElementById('end-stats').innerText = `Eliminado por Bots no Parkour. Kills: ${myKills}`;
+            }
         }
-        if(b.x < 0 || b.x > MAP_SIZE || b.y < 0 || b.y > MAP_SIZE) bullets.splice(i,1);
     });
 
-    items.forEach((it, i) => {
-        if(Math.hypot(player.x - it.x, player.y - it.y) < 40) { player.grens += 2; document.getElementById('grenade-count').innerText = player.grens; items.splice(i,1); playSound('pickup'); }
-    });
-
-    if(player.hp <= 0) { player.hp = 100; player.x = 300; player.y = 300; }
-    if(conn && conn.open && Date.now() % 30 < 16) { conn.send({type:'sync', x:player.x, y:player.y, ang:player.angle, a:player.anim, h:player.hp}); }
-    
-    draw(); requestAnimationFrame(gameLoop);
+    render3D();
+    requestAnimationFrame(gameLoop);
 }
 
-function draw() {
-    const map = arenas[selectedMapIndex];
-    ctx.fillStyle = map.bg; ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
-    
-    ctx.save();
-    // Câmera Centralizada Dinâmica Segue o Jogador
-    let camX = player.x - V_WIDTH/2;
-    let camY = player.y - V_HEIGHT/2;
-    ctx.translate(-camX, -camY);
+// --- MOTOR GRÁFICO 3D POR RAYCASTING PROJETADO (FPS / CÂMERA EM TERCEIRA PESSOA RESTRITA) ---
+function render3D() {
+    // Limpeza de Tela (Céu e Horizonte Escuro)
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height/2);
+    ctx.fillStyle = '#020617'; ctx.fillRect(0, canvas.height/2, canvas.width, canvas.height/2);
 
-    // Bordas do Campo
-    ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 10; ctx.strokeRect(0, 0, MAP_SIZE, MAP_SIZE);
+    const fov = Math.PI / 3; // Campo de Visão 3D (Field of View)
+    const numRays = 120; // Resolução das colunas de renderização 3D
+    const rayStep = fov / numRays;
+    const colWidth = canvas.width / numRays;
 
-    // Obstáculos
-    ctx.fillStyle = map.wall;
-    map.blocks.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
-    
-    // Itens Verdes
-    items.forEach(it => { ctx.fillStyle='#2ecc71'; ctx.fillRect(it.x - 15, it.y - 15, 30, 30); });
-    // Granadas Vermelhas lançadas
-    grens.forEach(g => { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(g.x, g.y, 10, 0, 7); ctx.fill(); });
+    let zBuffer = [];
 
-    // Desenhar Jogadores com Rostos Lindos e Membros Completos
-    drawBeautifulSoldier(player.x, player.y, player.color, player.hairColor, player.angle, player.anim, player.hp, "VOCÊ");
-    if(remotePlayer.active) drawBeautifulSoldier(remotePlayer.x, remotePlayer.y, remotePlayer.color, remotePlayer.hairColor, remotePlayer.angle, remotePlayer.anim, remotePlayer.hp, "RIVAL");
-    bots.forEach(bot => { drawBeautifulSoldier(bot.x, bot.y, bot.color, bot.hairColor, bot.angle, bot.anim, bot.hp, bot.id); });
+    // Desenho do Terreno de Parkour e das Paredes através de Projeção Tridimensional
+    for (let i = 0; i < numRays; i++) {
+        let rayAngle = (player.angle - fov / 2) + i * rayStep;
+        let distance = 0;
+        let hitWall = false;
+        let hitLava = false;
 
-    // Projéteis Amarelos de Fogo
-    ctx.fillStyle = '#f1c40f'; 
+        let cosA = Math.cos(rayAngle);
+        let sinA = Math.sin(rayAngle);
+
+        // Estende o feixe de luz tridimensional para calcular profundidade
+        while (distance < 20 && !hitWall) {
+            distance += 0.15;
+            let checkX = player.x + cosA * distance;
+            let checkY = player.y + sinA * distance;
+
+            if (getMapTile(checkX, checkY) === 0) {
+                hitLava = true; // Espaço vazio mostra a cor de perigo (lava de fundo)
+            } else {
+                hitWall = true; // Encontrou bloco sólido elevado do Parkour
+            }
+        }
+
+        // Correção de efeito olho de peixe na visualização de FPS
+        let correctedDist = distance * Math.cos(rayAngle - player.angle);
+        zBuffer.push(correctedDist);
+
+        // Projeta o tamanho vertical com base na proximidade do jogador
+        let wallHeight = Math.min(canvas.height, (canvas.height / correctedDist));
+
+        // Efeito visual de profundidade (Fading/Névoa)
+        let shade = Math.max(0, 255 - (correctedDist * 14));
+
+        // Ajuste vertical baseado na altura atual do pulo do jogador
+        let cameraYOffset = player.z * (canvas.height / 3);
+
+        if(hitWall) {
+            ctx.fillStyle = `rgb(${shade * 0.2}, ${shade * 0.5}, ${shade * 0.8})`; // Paredes do Parkour azuis
+            ctx.fillRect(i * colWidth, (canvas.height - wallHeight) / 2 + cameraYOffset, colWidth, wallHeight);
+        }
+        
+        // Desenha a esteira/chão de lava vermelha no abismo infinito abaixo das plataformas
+        if(hitLava && correctedDist > 2) {
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(i * colWidth, (canvas.height / 2) + (wallHeight / 2) + cameraYOffset, colWidth, canvas.height);
+        }
+    }
+
+    // Renderização dos Elementos Tridimensionais (Sprites dos Bots) ordenados por distância
+    bots.forEach(bot => {
+        let dx = bot.x - player.x;
+        let dy = bot.y - player.y;
+
+        // Ângulo relativo à direção do jogador
+        let botAngle = Math.atan2(dy, dx) - player.angle;
+        while (botAngle < -Math.PI) botAngle += Math.PI * 2;
+        while (botAngle > Math.PI) botAngle -= Math.PI * 2;
+
+        // Se estiver dentro da tela do jogador
+        if (Math.abs(botAngle) < fov) {
+            let dist = Math.hypot(dx, dy);
+            if (dist > 0.2 && dist < 20) {
+                let screenX = (canvas.width / 2) + (Math.tan(botAngle) * (canvas.width / 2));
+                let spriteSize = Math.min(canvas.height, (canvas.height / dist));
+
+                let cameraYOffset = player.z * (canvas.height / 3);
+                let spriteY = (canvas.height - spriteSize) / 2 + cameraYOffset;
+
+                // Renderiza Cabeça Bonita com Cabelo e Olhos Simplificados no Sprite 3D
+                ctx.save();
+                ctx.translate(screenX, spriteY + spriteSize / 2);
+
+                // Corpo do Inimigo
+                ctx.fillStyle = bot.color;
+                ctx.beginPath(); ctx.arc(0, 0, spriteSize / 4, 0, Math.PI * 2); ctx.fill();
+
+                // Cabeça e Cabelo do Bot
+                ctx.fillStyle = '#ffe0bd';
+                ctx.beginPath(); ctx.arc(0, -spriteSize/4, spriteSize/6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#34495e';
+                ctx.fillRect(-spriteSize/8, -spriteSize/2.5, spriteSize/4, spriteSize/8); // Cabelo superior
+
+                // Pequena barra de vida sobre o Bot 3D
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-20, -spriteSize/1.8, 40, 5);
+                ctx.fillStyle = '#2ecc71'; ctx.fillRect(-20, -spriteSize/1.8, 40 * (bot.hp/100), 5);
+
+                ctx.restore();
+            }
+        }
+    });
+
+    // Renderização de Balas na Visão 3D
     bullets.forEach(b => {
-        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx)); ctx.fillRect(-10, -3, 20, 6); ctx.restore();
+        let dx = b.x - player.x;
+        let dy = b.y - player.y;
+        let bAngle = Math.atan2(dy, dx) - player.angle;
+        if(Math.abs(bAngle) < fov) {
+            let dist = Math.hypot(dx, dy);
+            let screenX = (canvas.width / 2) + (Math.tan(bAngle) * (canvas.width / 2));
+            let bSize = 150 / dist;
+            let cameraYOffset = player.z * (canvas.height / 3);
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath(); ctx.arc(screenX, (canvas.height/2) - (b.z * canvas.height/4) + cameraYOffset, Math.max(2, bSize), 0, 7); ctx.fill();
+        }
     });
-    
-    ctx.restore();
-}
-
-// ARTE EM CANVAS: Desenha o Boneco Lindo com Cabelo, Olhos, Boca, Orelhas, Nariz, Pernas e Pés
-function drawBeautifulSoldier(x, y, bodyColor, hairColor, angle, anim, hp, name) {
-    ctx.save();
-    ctx.translate(x, y);
-
-    // UI Superior do Personagem (Nome e Vida)
-    ctx.save();
-    ctx.fillStyle = 'white'; ctx.font = 'bold 15px Arial'; ctx.textAlign = 'center'; ctx.fillText(name, 0, -45);
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-25, -38, 50, 6);
-    ctx.fillStyle = hp > 30 ? '#2ecc71' : '#ff4757'; ctx.fillRect(-25, -38, 50 * (hp / 100), 6);
-    ctx.restore();
-
-    // Rotação Baseada em para onde olha/atira
-    ctx.rotate(angle);
-
-    // 1. PERNAS E PÉS (Animadas balançando ao andar)
-    let legSwing = Math.sin(anim) * 15;
-    ctx.fillStyle = '#2c3e50'; // Cor da calça
-    let footColor = '#111111'; // Cor dos sapatos/pés
-    
-    // Perna Esquerda + Pé
-    ctx.save();
-    ctx.translate(-8, legSwing);
-    ctx.fillRect(-6, 0, 12, 18); // perna
-    ctx.fillStyle = footColor; ctx.fillRect(-6, 14, 14, 7); // pé
-    ctx.restore();
-
-    // Perna Direita + Pé
-    ctx.save();
-    ctx.translate(8, -legSwing);
-    ctx.fillRect(-6, 0, 12, 18); // perna
-    ctx.fillStyle = footColor; ctx.fillRect(-6, 14, 14, 7); // pé
-    ctx.restore();
-
-    // 2. CORPO / TRONCO
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#1e272e'; ctx.lineWidth = 2; ctx.stroke();
-
-    // 3. BRAÇOS E ARMA (Apontando para frente)
-    ctx.fillStyle = '#ffe0bd'; // Pele das mãos
-    ctx.fillRect(15, -16, 12, 8); // Braço direito para frente
-    ctx.fillRect(15, 8, 12, 8);  // Braço esquerdo para frente
-    ctx.fillStyle = '#2c3e50'; // Rifle cinza escuro
-    ctx.fillRect(18, -6, 25, 10); // Cano do rifle disparador
-
-    // 4. ORELHAS (Nas laterais da cabeça)
-    ctx.fillStyle = '#ffe0bd';
-    ctx.beginPath(); ctx.arc(0, -21, 5, 0, Math.PI*2); ctx.fill(); // Orelha esq
-    ctx.beginPath(); ctx.arc(0, 21, 5, 0, Math.PI*2); ctx.fill();  // Orelha dir
-
-    // 5. CABEÇA PRINCIPAL (Rosto em Pele)
-    ctx.fillStyle = '#ffe0bd';
-    ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2); ctx.fill();
-
-    // 6. CABELO LINDO (Atrás e em cima)
-    ctx.fillStyle = hairColor;
-    ctx.beginPath(); ctx.arc(-5, 0, 16, Math.PI*0.5, Math.PI * 1.5); ctx.fill(); // Cabelo atrás
-    ctx.fillRect(-6, -15, 10, 30); // Preenchimento do topo
-
-    // 7. NARIZ (Apontando para frente)
-    ctx.fillStyle = '#f3a683';
-    ctx.beginPath(); ctx.moveTo(13, -3); ctx.lineTo(19, 0); ctx.lineTo(13, 3); ctx.fill();
-
-    // 8. OLHOS DETALHADOS (Olhando para frente)
-    // Esquerdo (Globo branco + pupila)
-    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(11, -7, 4, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(12, -7, 2, 0, Math.PI*2); ctx.fill(); // Íris/Pupila
-    // Direito
-    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(11, 7, 4, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(12, 7, 2, 0, Math.PI*2); ctx.fill();
-
-    // 9. BOCA (Expressão feliz de batalha)
-    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(10, 0, 4, 0, Math.PI, false); ctx.stroke();
-
-    ctx.restore();
 }
 </script>
 </body>
